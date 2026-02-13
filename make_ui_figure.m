@@ -36,8 +36,8 @@ ax.Title.FontSize = 18;
 ax.Title.FontWeight = 'normal';
 ax.Title.String = 'Waiting to start';
 
-ax.YTick = [1 3 5 7 9 11];
-ax.YTickLabel = {'Frames','Reward Valve','Remove Valve','Wheel','Piezo','Licks'};
+ax.YTick = [1 3 5 7 9 11 13];
+ax.YTickLabel = {'Frames','Reward Valve','Remove Valve','Wheel','Opto','Piezo','Licks'};
 nan_vec = nan(fs*n_sec_disp,1);
 
 ax.XAxis.Visible  = 'off';
@@ -46,7 +46,8 @@ plot(ax,nan_vec,'Color',ax1_color_pallette{1},'LineWidth',1); % frame raw
 plot(ax,nan_vec,'Color',ax1_color_pallette{2},'LineWidth',1); % reward valve
 plot(ax,nan_vec,'Color',ax1_color_pallette{3},'LineWidth',1); % remove valve
 plot(ax,nan_vec,'Color',ax1_color_pallette{4},'LineWidth',1); % wheel
-plot(ax,nan_vec,'Color',ax1_color_pallette{5},'LineWidth',1); % piezo signal
+plot(ax,nan_vec,'Color',ax1_color_pallette{5},'LineWidth',1); % opto signal
+plot(ax,nan_vec,'Color',ax1_color_pallette{2},'LineWidth',1); % piezo signal
 plot(ax,nan_vec,'LineStyle','None','Marker','o','MarkerFaceColor',ax1_color_pallette{6},'MarkerEdgeColor','None','MarkerSize',3); % lick detector
 
 %% notes text box

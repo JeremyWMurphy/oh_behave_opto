@@ -37,7 +37,9 @@ opto_pulse_type = '1'; % on teensy 1 = sqaure wave
 opto_len = '50'; % ms
 opto_times = [-500 -100 0];
 
-% make opto trials
+%% Trial structure
+
+%make opto trials
 n_opto_trials = round(n_trials * prcnt_opto);
 n_opto_ttypes =  numel(sig_amps) * numel(opto_times);
 trls = [];

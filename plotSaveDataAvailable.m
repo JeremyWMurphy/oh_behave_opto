@@ -23,14 +23,14 @@ if ~isempty(data)
     data(data(:,7)==0,7) = NaN;
 
     % set data graphs
-    ax.YTickLabel = {'Frames','Reward Valve','Remove Valve','Wheel','Piezo','Licks'};
 
-    ax.Children(6).set('Ydata',[ax.Children(6).YData(size(data,1)+1:end) 1 + [diff(data(:,2)') 0]]); % frames
-    ax.Children(5).set('Ydata',[ax.Children(5).YData(size(data,1)+1:end) 3 + data(:,9)']); % reward valve
-    ax.Children(4).set('Ydata',[ax.Children(4).YData(size(data,1)+1:end) 5 + data(:,10)']); % remove valve
-    ax.Children(3).set('Ydata',[ax.Children(3).YData(size(data,1)+1:end) 7 + data(:,8)'./1024]); % wheel
-    ax.Children(2).set('Ydata',[ax.Children(2).YData(size(data,1)+1:end) 9 + data(:,5)'./4095]); % ao0
-    ax.Children(1).set('Ydata',[ax.Children(1).YData(size(data,1)+1:end) 10 + data(:,7)']); % licks
+    ax.Children(7).set('Ydata',[ax.Children(6).YData(size(data,1)+1:end) 1 + [diff(data(:,2)') 0]]); % frames
+    ax.Children(6).set('Ydata',[ax.Children(5).YData(size(data,1)+1:end) 3 + data(:,9)']); % reward valve
+    ax.Children(5).set('Ydata',[ax.Children(4).YData(size(data,1)+1:end) 5 + data(:,10)']); % remove valve
+    ax.Children(4).set('Ydata',[ax.Children(3).YData(size(data,1)+1:end) 7 + data(:,8)'./1024]); % wheel
+    ax.Children(3).set('Ydata',[ax.Children(2).YData(size(data,1)+1:end) 9 + data(:,6)'./4095]); % opto
+    ax.Children(2).set('Ydata',[ax.Children(2).YData(size(data,1)+1:end) 11 + data(:,5)'./4095]); % ao0
+    ax.Children(1).set('Ydata',[ax.Children(1).YData(size(data,1)+1:end) 12 + data(:,7)']); % licks
    
     ot = find(data(:,4) ~= 0,1,'first'); 
     if ~isempty(ot)
