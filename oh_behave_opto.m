@@ -32,7 +32,8 @@ pulse_intrvl = '25'; % ms
 pulse_reps = '10';
 
 % opto specific parameters
-opto_amp = 3;
+opto_chan = '1';
+opto_amp = 5;
 opto_pulse_type = '1'; % on teensy 1 = sqaure wave
 opto_len = '50'; % ms
 opto_times = [-500 -100 0];
@@ -66,6 +67,7 @@ trls = [trls; zeros(round(n_trials*(1-prcnt_go)*(1-prcnt_opto)),1)];
 
 %%
 sig_amps_12bit = map_jm(sig_amps,0,5,0,4095);
+opto_amp_12bit = map_jm(opto_amp,0,5,0,4095);
 %%
 
 % device parameters
@@ -238,18 +240,19 @@ while f.UserData.state ~= 3
                     opto_offset = randi(numel(opto_times));
                     is_go = false;
                     piezo_amp = 0;
-                    o_amp = opto_amp;
+                    o_amp = opto_amp_12bit;
                 else
                     opto_offset = opto_times(opto_idx);
                     piezo_amp = sig_amps_12bit(rem(trial_type,10));
                     is_go = true;
-                    o_amp = opto_amp;
+                    o_amp = opto_amp_12bit;
                 end
             else % it's piezo alone or a full catch
                 if trial_type == 0 % it's a full catch
                     is_go = false;
                     o_amp = 0;
                     piezo_amp = 0;
+                    opto_offset = 0;
                 else
                   piezo_amp = sig_amps_12bit(trial_type);
                   is_go = true;
@@ -266,8 +269,8 @@ while f.UserData.state ~= 3
             msg_out = ['<W,' opto_chan ',' opto_pulse_type ',' opto_len ',' num2str(o_amp) ',0,1,' num2str(iti+opto_offset) '>'];           
             write_serial(s,msg_out);
 
-            fprintf(data_fid_notes,['\n Trial ' num2str(trl_cntr) ' ' char(datetime('now','Format','HH:mm:ss')) ', ' ttype_dict(trial_type)]);
-            ax.Title.String = ['Trial ' num2str(trl_cntr) ', ' ttype_dict(trial_type)];
+            fprintf(data_fid_notes,['\n Trial ' num2str(trl_cntr) ' ' char(datetime('now','Format','HH:mm:ss')) ', ' char(ttype_dict(trial_type))]);
+            ax.Title.String = ['Trial ' num2str(trl_cntr) ', ' char(ttype_dict(trial_type))];
 
             % run appropriate trial type
             if run_type == 1

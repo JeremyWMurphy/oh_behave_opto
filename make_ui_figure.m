@@ -1,7 +1,7 @@
 function fig = make_ui_figure(fs,n_sec_disp,s,sig_amps)
 
 default_id = 'NA';
-pth_main  = 'C:\Users\Jeremy\Documents\';
+pth_main  = 'C:\Users\ephys\Documents\';
 
 ax1_color_pallette = {'#75f5f3','#75f5a7','#f49234','#5af434','#f674e6','#e8f028'};
 
