@@ -5,11 +5,16 @@ teensy_fs = 2000; % teensy sample rate, Hz
 
 % experiment parameters
 baseln = 5; % length of pause at begining of each run, sec
-n_trials = 200; % number of total trials to run
+n_trials = 400; % number of total trials to run -- there are many conditions, so this is a target, but do to rounding (always up, i.e., ceil()), there will be more than this number
 
 %% detection main parameters
+<<<<<<< HEAD
 prcnt_go = 0.95; % percentage of trials that are go trials
 prcnt_opto = 0.5;
+=======
+prcnt_go = 0.5; % percentage of trials that are go trials
+prcnt_opto = 0.75;
+>>>>>>> b40cf49cb5ff84fc667c814b8600dda86dcc12a7
 
 iti_len = [3 5];
 n_resets = Inf; % how many times to reset iti on early lick
@@ -41,29 +46,29 @@ opto_times = [-500 -100 0];
 %% Trial structure
 
 %make opto trials
-n_opto_trials = round(n_trials * prcnt_opto);
+n_opto_trials = ceil(n_trials * prcnt_opto);
 n_opto_ttypes =  numel(sig_amps) * numel(opto_times);
 trls = [];
 ttype_dict = dictionary();
 for i = 1:numel(opto_times)
     for j = 1:numel(sig_amps)
         ttype_dict((i*10) + j) = ['o:' num2str(opto_times(i)) ',p:' num2str(sig_amps(j))];
-        trls = [trls; ((i*10) + j) * ones(round((n_opto_trials/n_opto_ttypes)*prcnt_go),1)]; 
+        trls = [trls; ((i*10) + j) * ones(ceil((n_opto_trials/n_opto_ttypes)*prcnt_go),1)]; 
     end
 end
 ttype_dict(100) = 'opto alone';
-trls = [trls; 100*ones(round(n_trials*(1-prcnt_go)*prcnt_opto),1)];
+trls = [trls; 100*ones(ceil(n_trials*(1-prcnt_go)*prcnt_opto),1)];
 
 % make piezo alone trials
-n_nopto_trls = round(n_trials * (1-prcnt_opto));
+n_nopto_trls = ceil(n_trials * (1-prcnt_opto));
 
 % fill go trials with requested proportions of signal amplitudes
 for i = 1:numel(sig_amps)
     ttype_dict(i) = ['p alone:' num2str(sig_amps(i))];
-    trls = [trls;i*ones(round((n_nopto_trls*prcnt_go)/numel(sig_amps)),1)];
+    trls = [trls;i*ones(ceil((n_nopto_trls*prcnt_go)/numel(sig_amps)),1)];
 end
 ttype_dict(0) = 'full catch';
-trls = [trls; zeros(round(n_trials*(1-prcnt_go)*(1-prcnt_opto)),1)];
+trls = [trls; zeros(ceil(n_trials*(1-prcnt_go)*(1-prcnt_opto)),1)];
 
 %%
 sig_amps_12bit = map_jm(sig_amps,0,5,0,4095);
