@@ -8,20 +8,20 @@ baseln = 5; % length of pause at begining of each run, sec
 n_trials = 200; % number of total trials to run
 
 %% detection main parameters
-prcnt_go = 0.75; % percentage of trials that are go trials
-prcnt_opto = 0.75;
+prcnt_go = 0.95; % percentage of trials that are go trials
+prcnt_opto = 0.5;
 
-iti_len = [2 4];
-n_resets = 10; % how many times to reset iti on early lick
-fa_timeout_len = 15; % on a FA give a timeout this longe, in seconds
+iti_len = [3 5];
+n_resets = Inf; % how many times to reset iti on early lick
+fa_timeout_len = 5; % on a FA give a timeout this longe, in seconds
 
 play_error_sound = false; % play gross noise if early lick
-play_hit_sound = true; % play chirp on hit
-play_fa_sound = true; % play long gross noise if early lick
+play_hit_sound = false; % play chirp on hit
+play_fa_sound = false; % play long gross noise if early lick
 
 % piezo specific parameters
-sig_amps = [0.5 0.7 1 1.3 1.75 3]; % amplitudes of stimuli, Volts
-prcnt_amps = [0.167 0.167 0.167 0.167 0.167 0.167]; % proportion of different amplitudes to present - needs to add to 1
+sig_amps = [3]; % amplitudes of stimuli, Volts
+prcnt_amps = [1]; % proportion of different amplitudes to present - needs to add to 1
 % initial teensy waveform stimulus parameters, currently fixed to Shin and
 % Moore, 2019: whale, 6 ms rise, 20 ms fall, 20 Hz, 10 reps, 500 ms --
 % actually 5 ms rise here
@@ -33,7 +33,7 @@ pulse_reps = '10';
 
 % opto specific parameters
 opto_chan = '1';
-opto_amp = 5;
+opto_amp = 3;
 opto_pulse_type = '1'; % on teensy 1 = sqaure wave
 opto_len = '50'; % ms
 opto_times = [-500 -100 0];
@@ -237,7 +237,7 @@ while f.UserData.state ~= 3
             if trial_type >= 10 % it's an opto trial
                 opto_idx = floor(trial_type/10);
                 if opto_idx == 10 % it's an opto alone
-                    opto_offset = randi(numel(opto_times));
+                    opto_offset = 0;
                     is_go = false;
                     piezo_amp = 0;
                     o_amp = opto_amp_12bit;
