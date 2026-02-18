@@ -8,13 +8,8 @@ baseln = 5; % length of pause at begining of each run, sec
 n_trials = 400; % number of total trials to run -- there are many conditions, so this is a target, but do to rounding (always up, i.e., ceil()), there will be more than this number
 
 %% detection main parameters
-<<<<<<< HEAD
 prcnt_go = 0.95; % percentage of trials that are go trials
 prcnt_opto = 0.5;
-=======
-prcnt_go = 0.5; % percentage of trials that are go trials
-prcnt_opto = 0.75;
->>>>>>> b40cf49cb5ff84fc667c814b8600dda86dcc12a7
 
 iti_len = [3 5];
 n_resets = Inf; % how many times to reset iti on early lick
