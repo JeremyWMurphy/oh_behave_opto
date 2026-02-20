@@ -103,7 +103,7 @@ for i = 1:numel(config.opto_times)
     end
 end
 ttype_dict(100) = 'opto alone';
-trls = [trls; 100*ones(ceil(n_trials*(1-config.prcnt_go_p_opto)*config.prcnt_opto),1)];
+trls = [trls; 100*ones(ceil(config.n_trials*(1-config.prcnt_go_p_opto)*config.prcnt_opto),1)];
 
 % make piezo alone trials
 n_nopto_trls = ceil(config.n_trials * (1-config.prcnt_opto));
@@ -113,7 +113,7 @@ for i = 1:numel(config.sig_amps)
     trls = [trls;i*ones(ceil((n_nopto_trls*config.prcnt_go_p_alone)/numel(config.sig_amps)),1)];
 end
 ttype_dict(0) = 'full catch';
-trls = [trls; zeros(ceil(n_trials*(1-config.prcnt_go_p_alone)*(1-config.prcnt_opto)),1)];
+trls = [trls; zeros(ceil(config.n_trials*(1-config.prcnt_go_p_alone)*(1-config.prcnt_opto)),1)];
 
 %% convert voltages to 12 bit for dac
 sig_amps_12bit = map_jm(config.sig_amps,0,5,0,4095);
