@@ -1,7 +1,7 @@
 function fig = make_ui_figure(fs,n_sec_disp,s,sig_amps)
 
 default_id = 'NA';
-pth_main  = 'C:\Users\ephys\Documents\';
+pth_main = ['C:\Users\' getenv('USERNAME') '\Desktop\'];
 
 ax1_color_pallette = {'#75f5f3','#75f5a7','#f49234','#5af434','#f674e6','#e8f028'};
 
@@ -321,7 +321,7 @@ axc.XTickLabelRotation = 90;
 axc.YLim = [0 1];
 axc.XLim = [0 sig_amps(end)];
 axc.YLabel.String = 'P(hit)';
-plot(axc,sig_amps,zeros(size(sig_amps)),'Marker','o','Color',[131 56 236]./255,'MarkerFaceColor',[131 56 236]./255); % piezo signal
+plot(axc,sig_amps,zeros(size(sig_amps)),'Marker','o','Color',[131 56 236]./255,'MarkerFaceColor',[131 56 236]./255);
 
 end
 
