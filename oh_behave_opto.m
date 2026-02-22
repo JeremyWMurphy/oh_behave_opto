@@ -14,7 +14,7 @@ config.prcnt_go_p_alone = 0.85; % percentage of trials that are go trials
 config.prcnt_go_p_opto = 0.85; % percentage of trials that are go trials
 config.prcnt_opto = 0.5;
 
-config.iti_len = [2 4];
+config.iti_len = [3 5];
 config.n_resets = Inf; % how many times to reset iti on early lick
 config.fa_timeout_len = 5; % on a FA give a timeout this longe, in seconds
 
@@ -200,9 +200,6 @@ while f.UserData.state ~= 3
         s.flush;
 
         write_serial(s,teensy_reset); % resetting teensy
-        pause(1)
-        write_serial(s,'<S,8>');
-        pause(5)
 
         s.configureCallback('byte',config.up_every, @(src,evt) plotSaveDataAvailable(src, evt, data_fid_stream, ax, config.up_every,f));
 

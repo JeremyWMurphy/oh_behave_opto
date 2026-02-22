@@ -206,7 +206,6 @@ void ohBehave() {
     endOfTrialCleanUp();
     loopCount = 0;
     frameCount = 0;
-    State = IDLE;
 
   } else if (State == GO) {  // GO
     goNoGo();
@@ -493,6 +492,7 @@ void endOfTrialCleanUp(){
     trialEndStart = false;
     transmitT = loopCount;
   } else if (!trialEndStart && loopCount - transmitT > transmitLen){   
+    //Serial.println("Here");
     // general end of trial/state reset 
     for (int i = 0; i < 4; i++) {
         stimOn[i] = true;
@@ -579,7 +579,7 @@ void pollData() {
 }
 
 void dataReport() {
-  // send out data over serial
+  //send out data over serial
   Serial.print("<");
   Serial.print(loopCount);
   Serial.print(",");
