@@ -27,6 +27,7 @@ uint vacLen =     Fs * 1;   // how long to open reward valve in samples
 uint pairDelay =  Fs * 0;   // in pairing trials, time between stim and reward
 uint earlyLen =   Fs * 0.2; // how long to broadcast early lick
 uint removeLen =  Fs * 1;
+uint transmitLen = Fs * 0.5;
 
 // channels
 // ins
@@ -69,6 +70,7 @@ const uint CW   = 3;
 const uint FA   = 4;
 const uint LICK = 5;
 volatile uint trialOutcome = 0;
+volatile uint latestOutcome = 0;
 
 // general timers/trackers
 volatile bool stimEnd = false;
@@ -93,6 +95,9 @@ volatile uint32_t consumeT = 0;
 
 volatile bool removeStart = true;
 volatile uint32_t removeT = 0;
+
+volatile bool trialEndStart = true;
+volatile uint32_t transmitT = 0;
 
 volatile bool trigStart = true;
 volatile bool trigEnd = false;
@@ -201,7 +206,6 @@ void ohBehave() {
     endOfTrialCleanUp();
     loopCount = 0;
     frameCount = 0;
-    trialOutcome = 0;
     State = IDLE;
 
   } else if (State == GO) {  // GO
@@ -267,7 +271,7 @@ void goNoGo() {
           lickLow = 0;
         }
         if (lickCount > lickMax){
-          trialOutcome = LICK;
+          latestOutcome = LICK;
           lickCount = 0;
           lickLow = 0;
           firstLick = true;
@@ -288,34 +292,24 @@ void goNoGo() {
         respEnd = true;
       }
     } else if (respEnd) {  // if stim and resp window are both over, evaluate outcome
-      if (dispStart) {
-        dispT = loopCount;
-        dispStart = false;
-      }
+      
       if (hasResponded) {  // if there was a response, assign hit or fa
         if (State == GO){
-          trialOutcome = HIT;
+          latestOutcome = HIT;
         } else if (State == NOGO){
-          trialOutcome = FA;
+          latestOutcome = FA;
         }
       } else {  // or there was no response, assign miss or cw
         if (State == GO) {
-          trialOutcome = MISS;
+          latestOutcome = MISS;
         } else if (State == NOGO) {
-          trialOutcome = CW;
+          latestOutcome = CW;
         }
       }
-      if (loopCount - dispT > valveLen) {  // end of reward dispense         
-        digitalWrite(valveChan1, LOW);
-        if (consumeStart){
-          consumeT = loopCount;
-          consumeStart = false;
-        }
-        if (loopCount - consumeT > consumeLen){
-          State = REMOVEREWARD;
-        }
-      } else if (trialOutcome == HIT) {
-        digitalWrite(valveChan1, HIGH);
+      if (latestOutcome == HIT){
+          State = REWARD;
+      } else {
+        endOfTrialCleanUp();
       }
     }
   }
@@ -329,7 +323,7 @@ void justStim() {
   } else if (!waitForNextFrame || frameCount > curFrame) {   
     waveWrite();  // present stim
     if (stimEnd) {  // if stim and resp window are both over, evaluate outcome
-        endOfTrialCleanUp();      
+        endOfTrialCleanUp();
     }
   }
 } 
@@ -347,9 +341,8 @@ void justReward() {
       consumeStart = false;
     }
     if (loopCount - consumeT > consumeLen){
-      trialOutcome = HIT;
       State = REMOVEREWARD;
-  }
+    }
   } else {
     digitalWrite(valveChan1, HIGH);
   } 
@@ -379,7 +372,7 @@ void pairing() {
           lickLow = 0;
         }
         if (lickCount > lickMax){
-          trialOutcome = LICK;
+          latestOutcome = LICK;
           lickCount = 0;
           lickLow = 0;
           firstLick = true;
@@ -396,23 +389,8 @@ void pairing() {
       }
     }
     if (stimEnd && respEnd) {  // if stim and resp window are both over, evaluate outcome
-      if (dispStart) {
-        trialOutcome = HIT;
-        dispT = loopCount;
-        dispStart = false;
-      }
-      if (loopCount - dispT > valveLen) {  // end of reward dispens, reset things          
-        digitalWrite(valveChan1, LOW); 
-        if (consumeStart){
-          consumeT = loopCount;
-          consumeStart = false;
-        }
-        if (loopCount - consumeT > consumeLen){
-          State = REMOVEREWARD;
-        }
-      } else {
-        digitalWrite(valveChan1, HIGH);
-      }
+      latestOutcome = HIT;
+      State = REWARD;
     }
   }
 }
@@ -508,33 +486,43 @@ void breakWave(){
 }
 
 void endOfTrialCleanUp(){
-  // general end of trial/state reset 
-  for (int i = 0; i < 4; i++) {
-      stimOn[i] = true;
-      stimBegin[i] = false;
-      inBase[i] = true;
+
+  trialOutcome = latestOutcome;
+
+  if (trialEndStart){
+    trialEndStart = false;
+    transmitT = loopCount;
+  } else if (!trialEndStart && loopCount - transmitT > transmitLen){   
+    // general end of trial/state reset 
+    for (int i = 0; i < 4; i++) {
+        stimOn[i] = true;
+        stimBegin[i] = false;
+        inBase[i] = true;
+      }
+    digitalWrite(valveChan1, LOW);
+    digitalWrite(valveChan2, LOW);
+    digitalWrite(trigChan1, LOW);
+    digitalWrite(trigChan2, LOW);
+    digitalWrite(trigChan3, LOW);
+    digitalWrite(trigChan4, LOW);
+    earlyStart = true;
+    conStimOn = false;
+    stimEnd = false;
+    respEnd = false;
+    hasResponded = false;
+    respStart = true;
+    dispStart = true;
+    consumeStart = true;
+    removeStart = true;
+    frameWaitStart = true;
+    trialOutcome = 0;
+    latestOutcome = 0;
+    trialEndStart = true;
+    lickCount = 0;
+    lickLow = 0;
+    firstLick = true;
+    State = IDLE;
   }
-  digitalWrite(valveChan1, LOW);
-  digitalWrite(valveChan2, LOW);
-  digitalWrite(trigChan1, LOW);
-  digitalWrite(trigChan2, LOW);
-  digitalWrite(trigChan3, LOW);
-  digitalWrite(trigChan4, LOW);
-  earlyStart = true;
-  conStimOn = false;
-  stimEnd = false;
-  respEnd = false;
-  hasResponded = false;
-  respStart = true;
-  dispStart = true;
-  consumeStart = true;
-  removeStart = true;
-  frameWaitStart = true;
-  trialOutcome = 0;
-  lickCount = 0;
-  lickLow = 0;
-  firstLick = true;
-  State = IDLE;
 }
 
 void removeReward(){
@@ -544,7 +532,7 @@ void removeReward(){
   } else if (loopCount - removeT > removeLen) {
     digitalWrite(valveChan2, LOW);
     endOfTrialCleanUp();
-  } else if (trialOutcome == HIT) {
+  } else {
     digitalWrite(valveChan2, HIGH);
   }
 }
@@ -554,7 +542,7 @@ void dealWithEarlyLick(){
   if (earlyStart){
     earlyT = loopCount;
     earlyStart = false;
-    trialOutcome = LICK;
+    latestOutcome = LICK;
     breakWave();
   } else if (loopCount - earlyT > earlyLen){
     endOfTrialCleanUp();

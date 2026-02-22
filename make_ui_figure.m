@@ -321,7 +321,7 @@ axc.XTickLabelRotation = 90;
 axc.YLim = [0 1];
 axc.XLim = [0 sig_amps(end)];
 axc.YLabel.String = 'P(hit)';
-plot(axc,sig_amps,zeros(size(sig_amps)),'Marker','o','Color',[131 56 236]./255,'MarkerFaceColor',[131 56 236]./255);
+plot(axc,[0 sig_amps],zeros(1,numel(sig_amps)+1),'Marker','o','Color',[131 56 236]./255,'MarkerFaceColor',[131 56 236]./255);
 
 end
 
