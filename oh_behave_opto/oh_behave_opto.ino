@@ -15,6 +15,7 @@ uint lickMax = 20; // how many licks are too many licks
 uint lickDebounce = 0.05 * Fs; // so as not to over-count licks, mouse would have to lick >= 20 Hz for this to under-count 
 
 bool waitForNextFrame = false; // if frame counting wait for a new frame to start to present a stimulus
+bool vacReward = true; // whether to suck off reward using solenoid 2
 
 uint contingentStim = 0; // index of the analog channel that the animal is responding to / detecting
 
@@ -25,9 +26,8 @@ uint valveLen =   Fs * 1;   // how long to open reward valve in samples
 uint consumeLen = Fs * 3;   // how long from reward administration does the animal have to consume the reward
 uint vacLen =     Fs * 1;   // how long to open reward valve in samples
 uint pairDelay =  Fs * 0;   // in pairing trials, time between stim and reward
-uint earlyLen =   Fs * 0.2; // how long to broadcast early lick
 uint removeLen =  Fs * 1;
-uint transmitLen = Fs * 0.5;
+uint transmitLen = Fs * 1;
 
 // channels
 // ins
@@ -59,8 +59,8 @@ const uint VALVEC     = 6;
 const uint TRIGGER    = 7; 
 const uint REWARD     = 8; 
 const uint STIMULUS   = 9; 
-const uint EARLYLICK = 10; 
 const uint REMOVEREWARD = 11;
+const uint TRIALEND = 12;
 volatile uint State = IDLE;
 
 // Behavior tracking
@@ -231,11 +231,11 @@ void ohBehave() {
   } else if (State == STIMULUS) {  // just send the stimulus
     justStim();
   
-  } else if (State == EARLYLICK){ // if early licks are enforced, and there's an early lick, break the trial and reset
-    dealWithEarlyLick();
-
   } else if (State == REMOVEREWARD){
     removeReward();
+
+  } else if (State == TRIALEND){
+    endOfTrialCleanUp();    
   }
   
   dataReport();
@@ -274,7 +274,7 @@ void goNoGo() {
           lickCount = 0;
           lickLow = 0;
           firstLick = true;
-          State = EARLYLICK;
+          State = TRIALEND;
         }
       }      
     } else if (stimBegin[contingentStim] && !respEnd){
@@ -308,7 +308,7 @@ void goNoGo() {
       if (latestOutcome == HIT){
           State = REWARD;
       } else {
-        endOfTrialCleanUp();
+        State = TRIALEND;
       }
     }
   }
@@ -322,7 +322,7 @@ void justStim() {
   } else if (!waitForNextFrame || frameCount > curFrame) {   
     waveWrite();  // present stim
     if (stimEnd) {  // if stim and resp window are both over, evaluate outcome
-        endOfTrialCleanUp();
+        State = TRIALEND;
     }
   }
 } 
@@ -333,17 +333,21 @@ void justReward() {
     dispT = loopCount;
     dispStart = false;
   }
-  if (loopCount - dispT > valveLen) {  // end of reward dispense, reset things
+  if (loopCount - dispT < valveLen) {
+    digitalWrite(valveChan1, HIGH);
+  } else {
     digitalWrite(valveChan1, LOW);
     if (consumeStart){
       consumeT = loopCount;
       consumeStart = false;
     }
     if (loopCount - consumeT > consumeLen){
-      State = REMOVEREWARD;
+      if (vacReward){
+        State = REMOVEREWARD;
+      } else {
+        State = TRIALEND;
+      }
     }
-  } else {
-    digitalWrite(valveChan1, HIGH);
   } 
 
 }
@@ -375,7 +379,7 @@ void pairing() {
           lickCount = 0;
           lickLow = 0;
           firstLick = true;
-          State = EARLYLICK;
+          State = TRIALEND;
         }
       } 
     } else if (stimBegin[contingentStim] && !respEnd){
@@ -468,22 +472,6 @@ void waveWrite() {
   }
 }  // end waveWrite
 
-void breakWave(){
-  // for ending a stimulus early
-  for (int i = 0; i < 4; i++) { // break stimulus delivery early and reset waveform parameters so they don't carry over
-    stimOn[i] = false;
-    stimBegin[i] = false;
-    inBase[i] = false;
-    BaseCntr[i] = 0; 
-    repCntr[i] = 0;
-    whaleCntr[i] = 0;
-    wavIncrmntr[i] = 0;
-    inIpi[i] = false;
-    ipiCntr[i] = 0;
-    curVal[i] = 0;
-  }
-}
-
 void endOfTrialCleanUp(){
 
   trialOutcome = latestOutcome;
@@ -491,14 +479,20 @@ void endOfTrialCleanUp(){
   if (trialEndStart){
     trialEndStart = false;
     transmitT = loopCount;
-  } else if (!trialEndStart && loopCount - transmitT > transmitLen){   
     //Serial.println("Here");
     // general end of trial/state reset 
     for (int i = 0; i < 4; i++) {
-        stimOn[i] = true;
-        stimBegin[i] = false;
-        inBase[i] = true;
-      }
+      stimOn[i] = false;
+      stimBegin[i] = false;
+      inBase[i] = false;
+      BaseCntr[i] = 0; 
+      repCntr[i] = 0;
+      whaleCntr[i] = 0;
+      wavIncrmntr[i] = 0;
+      inIpi[i] = false;
+      ipiCntr[i] = 0;
+      curVal[i] = 0;
+    }
     digitalWrite(valveChan1, LOW);
     digitalWrite(valveChan2, LOW);
     digitalWrite(trigChan1, LOW);
@@ -515,12 +509,13 @@ void endOfTrialCleanUp(){
     consumeStart = true;
     removeStart = true;
     frameWaitStart = true;
-    trialOutcome = 0;
     latestOutcome = 0;
-    trialEndStart = true;
     lickCount = 0;
     lickLow = 0;
     firstLick = true;
+  } else if (!trialEndStart && loopCount - transmitT > transmitLen){   
+    trialEndStart = true;
+    trialOutcome = 0;
     State = IDLE;
   }
 }
@@ -534,18 +529,6 @@ void removeReward(){
     endOfTrialCleanUp();
   } else {
     digitalWrite(valveChan2, HIGH);
-  }
-}
-
-void dealWithEarlyLick(){
-  // interrupt trial if early lick is detected -- if we're enforcing that rule
-  if (earlyStart){
-    earlyT = loopCount;
-    earlyStart = false;
-    latestOutcome = LICK;
-    breakWave();
-  } else if (loopCount - earlyT > earlyLen){
-    endOfTrialCleanUp();
   }
 }
 
@@ -714,12 +697,13 @@ void parseData() {  // split the data into its parts
         consumeLen = (volatile uint)round((param_val / 1000.0) * Fs);
       } else if (param_id == 9){ // in pairing trials, time between stim and reward
         pairDelay = (volatile uint)round((param_val / 1000.0) * Fs);
-      } else if (param_id == 10){ // how long to broadcast early lick
-        earlyLen = (volatile uint)round((param_val / 1000.0) * Fs);
+      } else if (param_id == 10){ // how long to broadcast trialoutcome
+        transmitLen = (volatile uint)round((param_val / 1000.0) * Fs);
       } else if (param_id == 11){ // how long to open remove reward valve for
         removeLen = (volatile uint)round((param_val / 1000.0) * Fs);
       } 
     }
+
     newData = false;
   }
 }
