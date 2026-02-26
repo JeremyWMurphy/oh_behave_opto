@@ -300,7 +300,7 @@ while f.UserData.state ~= 3
 
             trial_outcome = f.UserData.trialOutcome;
             
-            if reset_off
+            if reset_off % in the event we have enforce no licks and num resets is <Inf, we need to turn off enforce licks for this one trial is max licks has been reached
                 write(s,'<P,1,1>','string');
                 reset_off = 0;
             end

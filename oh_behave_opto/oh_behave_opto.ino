@@ -199,27 +199,35 @@ void setup() {
 
 void ohBehave() {
 
+  //things to call on every loop
+  pollData();
+  dataReport();
+  recvSerial();
+  parseData();
+  loopCount++;
+
+  // State dependent
   if (State == IDLE) {  // do nothing state
 
   } else if (State == RESET) {  // reset main
-    // this should only be called for one loop of ohBehave before reverting to state 0
-    endOfTrialCleanUp();
+    // reset these variable at the beginning of a run
     loopCount = 0;
     frameCount = 0;
+    endOfTrialCleanUp(); // something to note: this function alwayes sends us back to IDLE state
 
-  } else if (State == GO) {  // GO
+  } else if (State == GO) {  // GO trial
     goNoGo();
 
-  } else if (State == NOGO) {  // NO-GO
+  } else if (State == NOGO) {  // NO-GO trial
     goNoGo();
 
-  } else if (State == PAIR){ // pairing state
+  } else if (State == PAIR){ // pairing trial
     pairing();
 
-  } else if (State == TRIGGER) {  // send triggers
+  } else if (State == TRIGGER) {  // fire triggers
     fireTrig();
 
-  } else if (State == VALVEO) {  // open valve1
+  } else if (State == VALVEO) {  // open valve1, this is helpful for clearing lines and stuff
     digitalWrite(valveChan1, HIGH);
 
   } else if (State == VALVEC) {  // close valve1
@@ -238,16 +246,9 @@ void ohBehave() {
     endOfTrialCleanUp();    
   }
   
-  dataReport();
-  pollData();
-  recvSerial();
-  parseData();
-  loopCount++;
-
 }
 
-// States
-
+// State functions
 void goNoGo() {
   if (waitForNextFrame && frameWaitStart) {  // if we're waiting for the next frame to start
     curFrame = frameCount;
@@ -314,44 +315,6 @@ void goNoGo() {
   }
 }
 
-void justStim() {
-  // state to just present the stimuli without a trial structure
-  if (waitForNextFrame && frameWaitStart) {  // if we're waiting for the next frame to start
-    curFrame = frameCount;
-    frameWaitStart = false;
-  } else if (!waitForNextFrame || frameCount > curFrame) {   
-    waveWrite();  // present stim
-    if (stimEnd) {  // if stim and resp window are both over, evaluate outcome
-        State = TRIALEND;
-    }
-  }
-} 
-
-void justReward() {
-  // so you can just push a button and get a typical reward
-  if (dispStart) {
-    dispT = loopCount;
-    dispStart = false;
-  }
-  if (loopCount - dispT < valveLen) {
-    digitalWrite(valveChan1, HIGH);
-  } else {
-    digitalWrite(valveChan1, LOW);
-    if (consumeStart){
-      consumeT = loopCount;
-      consumeStart = false;
-    }
-    if (loopCount - consumeT > consumeLen){
-      if (vacReward){
-        State = REMOVEREWARD;
-      } else {
-        State = TRIALEND;
-      }
-    }
-  } 
-
-}
-
 void pairing() {
   // stim-reward pairing
   if (waitForNextFrame && frameWaitStart) {  // if we're waiting for the next frame to start
@@ -398,8 +361,128 @@ void pairing() {
   }
 }
 
+void justStim() {
+  // state to just present the stimuli without a trial structure
+  if (waitForNextFrame && frameWaitStart) {  // if we're waiting for the next frame to start
+    curFrame = frameCount;
+    frameWaitStart = false;
+  } else if (!waitForNextFrame || frameCount > curFrame) {   
+    waveWrite();  // present stim
+    if (stimEnd) {  // if stim and resp window are both over, evaluate outcome
+        State = TRIALEND;
+    }
+  }
+} 
+
+void justReward() {
+  // so you can just push a button and get a typical reward
+  if (dispStart) {
+    dispT = loopCount;
+    dispStart = false;
+  }
+  if (loopCount - dispT < valveLen) {
+    digitalWrite(valveChan1, HIGH);
+  } else {
+    digitalWrite(valveChan1, LOW);
+    if (consumeStart){
+      consumeT = loopCount;
+      consumeStart = false;
+    }
+    if (loopCount - consumeT > consumeLen){
+      if (vacReward){
+        State = REMOVEREWARD;
+      } else {
+        State = TRIALEND;
+      }
+    }
+  } 
+
+}
+
+void removeReward(){
+  if (removeStart) {
+    removeT = loopCount;
+    removeStart = false;
+  } else if (loopCount - removeT > removeLen) {
+    digitalWrite(valveChan2, LOW);
+    endOfTrialCleanUp();
+  } else {
+    digitalWrite(valveChan2, HIGH);
+  }
+}
+
+void endOfTrialCleanUp(){
+
+  trialOutcome = latestOutcome;
+
+  if (trialEndStart){
+    trialEndStart = false;
+    transmitT = loopCount;
+    //Serial.println("Here");
+    // general end of trial/state reset 
+    for (int i = 0; i < 4; i++) {
+      stimOn[i] = false;
+      stimBegin[i] = false;
+      inBase[i] = false;
+      BaseCntr[i] = 0; 
+      repCntr[i] = 0;
+      whaleCntr[i] = 0;
+      wavIncrmntr[i] = 0;
+      inIpi[i] = false;
+      ipiCntr[i] = 0;
+      curVal[i] = 0;
+    }
+    digitalWrite(valveChan1, LOW);
+    digitalWrite(valveChan2, LOW);
+    digitalWrite(trigChan1, LOW);
+    digitalWrite(trigChan2, LOW);
+    digitalWrite(trigChan3, LOW);
+    digitalWrite(trigChan4, LOW);
+    earlyStart = true;
+    conStimOn = false;
+    stimEnd = false;
+    respEnd = false;
+    hasResponded = false;
+    respStart = true;
+    dispStart = true;
+    consumeStart = true;
+    removeStart = true;
+    frameWaitStart = true;
+    latestOutcome = 0;
+    lickCount = 0;
+    lickLow = 0;
+    firstLick = true;
+  } else if (!trialEndStart && loopCount - transmitT > transmitLen){   
+    trialEndStart = true;
+    trialOutcome = 0;
+    State = IDLE;
+  }
+}
+
+void fireTrig() {
+  // fire a digital pulse on all trigger channels
+  if (trigStart) {
+    trigT = loopCount;
+    trigStart = false;
+  }
+  if (loopCount - trigT > trigLen) {
+    State = IDLE; 
+    trigStart = true;
+    digitalWrite(trigChan1, LOW);
+    digitalWrite(trigChan2, LOW);
+    digitalWrite(trigChan3, LOW);
+    digitalWrite(trigChan4, LOW);
+  } else {
+    digitalWrite(trigChan1, HIGH);
+    digitalWrite(trigChan2, HIGH);
+    digitalWrite(trigChan3, HIGH);
+    digitalWrite(trigChan4, HIGH);
+  }
+}
+
 // other functions
 
+//waveform tracker/genrator
 void waveWrite() {
   // waveform generator
   for (int i = 0; i < 4; i++) {  // for each dac channel
@@ -471,87 +554,6 @@ void waveWrite() {
     stimEnd = true;
   }
 }  // end waveWrite
-
-void endOfTrialCleanUp(){
-
-  trialOutcome = latestOutcome;
-
-  if (trialEndStart){
-    trialEndStart = false;
-    transmitT = loopCount;
-    //Serial.println("Here");
-    // general end of trial/state reset 
-    for (int i = 0; i < 4; i++) {
-      stimOn[i] = false;
-      stimBegin[i] = false;
-      inBase[i] = false;
-      BaseCntr[i] = 0; 
-      repCntr[i] = 0;
-      whaleCntr[i] = 0;
-      wavIncrmntr[i] = 0;
-      inIpi[i] = false;
-      ipiCntr[i] = 0;
-      curVal[i] = 0;
-    }
-    digitalWrite(valveChan1, LOW);
-    digitalWrite(valveChan2, LOW);
-    digitalWrite(trigChan1, LOW);
-    digitalWrite(trigChan2, LOW);
-    digitalWrite(trigChan3, LOW);
-    digitalWrite(trigChan4, LOW);
-    earlyStart = true;
-    conStimOn = false;
-    stimEnd = false;
-    respEnd = false;
-    hasResponded = false;
-    respStart = true;
-    dispStart = true;
-    consumeStart = true;
-    removeStart = true;
-    frameWaitStart = true;
-    latestOutcome = 0;
-    lickCount = 0;
-    lickLow = 0;
-    firstLick = true;
-  } else if (!trialEndStart && loopCount - transmitT > transmitLen){   
-    trialEndStart = true;
-    trialOutcome = 0;
-    State = IDLE;
-  }
-}
-
-void removeReward(){
-  if (removeStart) {
-    removeT = loopCount;
-    removeStart = false;
-  } else if (loopCount - removeT > removeLen) {
-    digitalWrite(valveChan2, LOW);
-    endOfTrialCleanUp();
-  } else {
-    digitalWrite(valveChan2, HIGH);
-  }
-}
-
-void fireTrig() {
-  // fire a digital pulse on all trigger channels
-  if (trigStart) {
-    trigT = loopCount;
-    trigStart = false;
-  }
-  if (loopCount - trigT > trigLen) {
-    State = IDLE; 
-    trigStart = true;
-    digitalWrite(trigChan1, LOW);
-    digitalWrite(trigChan2, LOW);
-    digitalWrite(trigChan3, LOW);
-    digitalWrite(trigChan4, LOW);
-  } else {
-    digitalWrite(trigChan1, HIGH);
-    digitalWrite(trigChan2, HIGH);
-    digitalWrite(trigChan3, HIGH);
-    digitalWrite(trigChan4, HIGH);
-  }
-}
 
 void pollData() {
   // get data in values
@@ -703,7 +705,6 @@ void parseData() {  // split the data into its parts
         removeLen = (volatile uint)round((param_val / 1000.0) * Fs);
       } 
     }
-
     newData = false;
   }
 }
