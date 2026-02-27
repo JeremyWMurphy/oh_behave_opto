@@ -406,11 +406,9 @@ void removeReward(){
   if (removeStart) {
     removeT = loopCount;
     removeStart = false;
-  } else if (loopCount - removeT > removeLen) {
-    digitalWrite(valveChan2, LOW);
-    endOfTrialCleanUp();
-  } else {
     digitalWrite(valveChan2, HIGH);
+  } else if (loopCount - removeT > removeLen) {
+    State = TRIALEND;
   }
 }
 
