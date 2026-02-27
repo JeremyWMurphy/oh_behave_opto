@@ -14,17 +14,18 @@ config.prcnt_go_p_alone = 0.85; % percentage of trials that are go trials
 config.prcnt_go_p_opto = 0.85; % percentage of trials that are go trials
 config.prcnt_opto = 0.5;
 
+% piezo specific parameters
+config.sig_amps = [0.1 0.2 0.5 0.75 1 2]; % amplitudes of stimuli, Volts
+config.prcnt_amps = [0.15 0.15 0.15 0.15 0.2 0.2]; % proportion of different amplitudes to present - needs to add to 1
+
 config.iti_len = [3 5];
+
 config.n_resets = Inf; % how many times to reset iti on early lick
 config.fa_timeout_len = 5; % on a FA give a timeout this longe, in seconds
 
 config.play_error_sound = false; % play gross noise if early lick
 config.play_hit_sound = false; % play chirp on hit
 config.play_fa_sound = false; % play long gross noise if early lick
-
-% piezo specific parameters
-config.sig_amps = [2 2.8 2.9 3]; % amplitudes of stimuli, Volts
-config.prcnt_amps = [0.25 0.25 0.25 0.25]; % proportion of different amplitudes to present - needs to add to 1
 
 % initial teensy waveform stimulus parameters, currently fixed to Shin and
 % Moore, 2019: whale, 6 ms rise, 20 ms fall, 20 Hz, 10 reps, 500 ms --

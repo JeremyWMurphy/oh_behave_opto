@@ -74,7 +74,6 @@ volatile uint latestOutcome = 0;
 
 // general timers/trackers
 volatile bool stimEnd = false;
-volatile bool conStimOn = false;
 
 volatile bool respStart = true;
 volatile bool respEnd = false;
@@ -213,7 +212,7 @@ void ohBehave() {
     // reset these variable at the beginning of a run
     loopCount = 0;
     frameCount = 0;
-    endOfTrialCleanUp(); // something to note: this function alwayes sends us back to IDLE state
+    State = IDLE;
 
   } else if (State == GO) {  // GO trial
     goNoGo();
@@ -288,11 +287,13 @@ void goNoGo() {
           hasResponded = true;
         }
       }
+
       if (loopCount - respT > respLen) {
         respEnd = true;
       }
+
     } else if (respEnd) {  // if stim and resp window are both over, evaluate outcome
-      
+ 
       if (hasResponded) {  // if there was a response, assign hit or fa
         if (State == GO){
           latestOutcome = HIT;
@@ -306,11 +307,13 @@ void goNoGo() {
           latestOutcome = CW;
         }
       }
+
       if (latestOutcome == HIT){
           State = REWARD;
       } else {
         State = TRIALEND;
       }
+
     }
   }
 }
@@ -416,14 +419,14 @@ void endOfTrialCleanUp(){
   trialOutcome = latestOutcome;
 
   if (trialEndStart){
+    
     trialEndStart = false;
     transmitT = loopCount;
-    //Serial.println("Here");
     // general end of trial/state reset 
     for (int i = 0; i < 4; i++) {
-      stimOn[i] = false;
+      stimOn[i] = true;
       stimBegin[i] = false;
-      inBase[i] = false;
+      inBase[i] = true;
       BaseCntr[i] = 0; 
       repCntr[i] = 0;
       whaleCntr[i] = 0;
@@ -438,8 +441,6 @@ void endOfTrialCleanUp(){
     digitalWrite(trigChan2, LOW);
     digitalWrite(trigChan3, LOW);
     digitalWrite(trigChan4, LOW);
-    earlyStart = true;
-    conStimOn = false;
     stimEnd = false;
     respEnd = false;
     hasResponded = false;
@@ -448,15 +449,16 @@ void endOfTrialCleanUp(){
     consumeStart = true;
     removeStart = true;
     frameWaitStart = true;
-    latestOutcome = 0;
     lickCount = 0;
     lickLow = 0;
     firstLick = true;
-  } else if (!trialEndStart && loopCount - transmitT > transmitLen){   
+  } else if (loopCount - transmitT > transmitLen){   
     trialEndStart = true;
     trialOutcome = 0;
+    latestOutcome = 0;
     State = IDLE;
   }
+
 }
 
 void fireTrig() {
