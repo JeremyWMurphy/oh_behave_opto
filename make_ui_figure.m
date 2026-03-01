@@ -35,13 +35,13 @@ ax.Title.Color = [1 1 1];
 ax.Title.FontSize = 18;
 ax.Title.FontWeight = 'normal';
 ax.Title.String = 'Waiting to start';
-
 ax.YTick = [1 3 5 7 9 11 13];
 ax.YTickLabel = {'Frames','Reward Valve','Remove Valve','Wheel','Opto','Piezo','Licks'};
-nan_vec = nan(fs*n_sec_disp,1);
-
 ax.XAxis.Visible  = 'off';
+ax.Toolbar.Visible = 'off';
+ax.Interactions = [];
 
+nan_vec = nan(fs*n_sec_disp,1);
 plot(ax,nan_vec,'Color',ax1_color_pallette{1},'LineWidth',1); % frame raw
 plot(ax,nan_vec,'Color',ax1_color_pallette{2},'LineWidth',1); % reward valve
 plot(ax,nan_vec,'Color',ax1_color_pallette{3},'LineWidth',1); % remove valve
@@ -308,6 +308,8 @@ bh = barh(axb,[1 2 3 4],[0 0 0 0]);
 bh.EdgeColor = 'none';
 bh.FaceColor = 'flat';
 bh.CData = ([17, 138, 178; 6, 214, 160; 255, 209, 102; 239, 71, 111]./255);
+axb.Toolbar.Visible = 'off';
+axb.Interactions = [];
 
 axc = axes(gl);
 axc.Layout.Row = [5 8];
@@ -321,6 +323,8 @@ axc.XTickLabelRotation = 90;
 axc.YLim = [0 1];
 axc.XLim = [0 sig_amps(end)];
 axc.YLabel.String = 'P(hit)';
+axc.Toolbar.Visible = 'off';
+axc.Interactions = [];
 plot(axc,[0 sig_amps],zeros(1,numel(sig_amps)+1),'Marker','o','Color',[131 56 236]./255,'MarkerFaceColor',[131 56 236]./255);
 
 end

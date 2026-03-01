@@ -10,12 +10,12 @@ config.baseln = 5; % length of pause at begining of each run, sec
 config.n_trials = 400; % number of total trials to run -- there are many conditions, so this is a target, but do to rounding (always up, i.e., ceil()), there will be more than this number
 
 %% detection main parameters
-config.prcnt_go_p_alone = 0.85; % percentage of trials that are go trials
-config.prcnt_go_p_opto = 0.85; % percentage of trials that are go trials
+config.prcnt_go_p_alone = 0.8; % percentage of trials that are go trials
+config.prcnt_go_p_opto = 0.8; % percentage of trials that are go trials
 config.prcnt_opto = 0.5;
 
 % piezo specific parameters
-config.sig_amps = [0.1 0.2 0.5 0.75 1 2]; % amplitudes of stimuli, Volts
+config.sig_amps = [0.2 0.6 0.8 0.9 1.1 2]; % amplitudes of stimuli, Volts
 config.prcnt_amps = [0.15 0.15 0.15 0.15 0.2 0.2]; % proportion of different amplitudes to present - needs to add to 1
 
 config.iti_len = [3 5];
@@ -33,8 +33,8 @@ config.play_fa_sound = false; % play long gross noise if early lick
 config.piezo_chan = '0';
 config.pulse_type = '0'; % 0 = whale, 1 = square, 2 = rampup, 3 = rampdown, 4 = pyramid
 config.pulse_len = '25'; % ms
-config.pulse_intrvl = '25'; % ms
-config.pulse_reps = '10';
+config.pulse_intrvl = '0'; % ms
+config.pulse_reps = '3';
 
 % opto specific parameters
 config.opto_chan = '1';
@@ -83,7 +83,7 @@ config.tp.waitForNextFrame = 0; % 1/0
 config.tp.contingentStim = 0; % uint 0-3, or number of dac channels, zero index based
 config.tp.trigLen = 200; % length of trigger broadcast/digital high, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec 
 config.tp.respLen = 1500; % length of response window from stim onset double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec 
-config.tp.valveLen = 200;  % how long the valve opens on reward, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec 
+config.tp.valveLen = 100;  % how long the valve opens on reward, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec 
 config.tp.consumeLen = 2500; % how much time to give between reward administration and starting the next trial, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec   
 config.tp.pairDelay =  0; % if doing pairing, offset between stim and reward, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec   
 config.tp.outLen =   1000; % length of time to braodcast an outcome of an early response, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec   

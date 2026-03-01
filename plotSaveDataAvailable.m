@@ -29,7 +29,7 @@ if ~isempty(data)
     ax.Children(5).set('Ydata',[ax.Children(5).YData(size(data,1)+1:end) 5 + data(:,10)']); % remove valve
     ax.Children(4).set('Ydata',[ax.Children(4).YData(size(data,1)+1:end) 7 + data(:,8)'./1024]); % wheel
     ax.Children(3).set('Ydata',[ax.Children(3).YData(size(data,1)+1:end) 9 + data(:,6)'./4095]); % opto
-    ax.Children(2).set('Ydata',[ax.Children(2).YData(size(data,1)+1:end) 11 + data(:,5)'./4095]); % ao0
+    ax.Children(2).set('Ydata',[ax.Children(2).YData(size(data,1)+1:end) 11 + 5*(data(:,5)'./4095)]); % ao0
     ax.Children(1).set('Ydata',[ax.Children(1).YData(size(data,1)+1:end) 12 + data(:,7)']); % licks
    
     ot = find(data(:,4) ~= 0,1,'first'); 
