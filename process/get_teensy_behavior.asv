@@ -1,6 +1,7 @@
 function [S] = get_teensy_behavior(d,fs)
 
 valid_response_win = 1.5;
+opto_times = [0 100 500];
 
 state = d.State;
 outcome = d.TrialOutcome;
@@ -15,7 +16,7 @@ cntr = 0;
 trial_dat = {};
 trial_ixs = [];
 trial_ix_abs = [];
-if isscalar(brk_ixs)
+if numel(brk_ixs) == 1
 
     new_state = state;
     new_out = outcome;
@@ -88,6 +89,7 @@ beh = [];
 % for each trial, get outcome
 all_go_licks = [];
 all_opto_nogo_licks = [];
+all_full_nogo_licks = [];
 for i = 1:numel(trial_dat)
 
     dat = trial_dat{i};
@@ -151,9 +153,7 @@ for i = 1:numel(trial_dat)
       
             elseif rslt == 4 % it eas a fa
                 b = [0 opto_trl opto_t 3 0 trial_ix i];
-                if opto_trl
-                    all_opto_nogo_licks = cat(2,all_opto_nogo_licks,dat(opto_onset-0.50*fs:(opto_onset+2*fs),5));
-                end
+                 all_opto_nogo_licks = cat(2,all_go_licks,dat(pz_onset-0.5*fs:(pz_onset+2*fs),5));
           
             else
                 % this rarely happens but seems to happen at the first trial (or maybe last) of a run, haven't tracked down the issue yet
@@ -174,4 +174,3 @@ S.state = state;
 S.opto = opto;
 S.fs = fs;
 S.all_go_licks = all_go_licks;
-S.all_opto_nogo_licks = all_opto_nogo_licks;
