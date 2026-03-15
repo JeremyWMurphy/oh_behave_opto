@@ -1,29 +1,122 @@
-function [] = get_teensy_behavior_compile(pth,compile_days)
+function [] = get_teensy_behavior_compile(pth,compile_days,runs,id)
+
+fs = 2e3;
+rt_cutoff = 0.150;
+
+d_cuttoff = 0;
+d_prime_bin_sec = 60; 
 
 % beh will be [piezo_amp opto_trl opto_t outcome rt trial_ix i];
 % hit = 1, miss = 0, cw = 2, fa = 3
 beh = [];
+go_licks = [];
+nogo_opto_licks = [];
+running_dprime_days = {};
+running_dprime_cont = [];
 for i = 1:numel(compile_days)
 
-    load([pth 'behavior_day_' num2str(compile_days(i))],'S');
+    load([pth 'behavior_' runs{compile_days(i)} '.mat'],'S');
     b = S.beh;
     first_hit = find(b(:,4)==1,1,'first');
     last_hit = find(b(:,4)==1,1,'last');
     b = b(first_hit:last_hit,:);
+
+    hit_vec = zeros(b(end,7),1);
+    hit_ixs = b(b(:,4)==1,6);
+    hit_vec(hit_ixs) = 1;
+
+    miss_vec = zeros(b(end,7),1);
+    miss_ixs = b(b(:,4)==0,6);
+    miss_vec(miss_ixs) = 1;
+
+    cw_vec = zeros(b(end,7),1);
+    cw_ixs = b(b(:,4)==3,6);
+    cw_vec(cw_ixs) = 1;
+
+    fa_vec = zeros(b(end,7),1);
+    fa_ixs = b(b(:,4)==4,6);
+    fa_vec(fa_ixs) = 1;
+    
+    bin_sz = fs * d_prime_bin_sec;
+    sz = size(hit_vec,1);
+    bin_rem = mod(sz,bin_sz);
+
+    hit = hit_vec(1:end-bin_rem);
+    hit = reshape(hit,bin_sz,[]);
+
+    miss = miss_vec(1:end-bin_rem);
+    miss = reshape(miss,bin_sz,[]);
+
+    fa = fa_vec(1:end-bin_rem);
+    fa = reshape(fa,bin_sz,[]);
+
+    cw = cw_vec(1:end-bin_rem);
+    cw = reshape(cw,bin_sz,[]);
+
+    bin_hits = sum(hit,1);
+    bin_miss = sum(miss,1);
+    bin_cw = sum(cw,1);
+    bin_fa = sum(fa,1);
+
+    bin_hits(bin_hits==0) = 0.001;
+    bin_miss(bin_miss==0) = 0.001;
+    bin_cw(bin_cw==0) = 0.001;
+    bin_fa(bin_fa==0) = 0.001;
+
+    bin_fa(bin_fa==0) = 0.05;
+    bin_miss(bin_miss==0) = 0.05;
+    pHit = bin_hits./(bin_hits+bin_miss); % pHit = P(YES|SIGNAL)
+    pFA  = bin_fa./(bin_fa+bin_cw); % pFA = P(YES|NOISE)
+    %-- Convert to Z scores, no error checking
+
+    zHit = norminv(pHit);
+    zFA  = norminv(pFA);
+
+    %-- Calculate d-prime
+    d = zHit - zFA;
+    running_dprime_days{i} = d;
+    running_dprime_cont = cat(2,running_dprime_cont,d);
+
+    bad_dbins = d<d_cuttoff;
+    t = 0:d_prime_bin_sec:(size(d,2)-1)*d_prime_bin_sec;
+    bad_ts = t(bad_dbins);
+    trial_ts = b(:,6)./fs;
+    low_d_trials = zeros(size(b,1),1);
+    for j = 1:numel(t)
+        if any(t(j)==bad_ts)
+            if j ~= numel(t)
+                low_d_trials(trial_ts>=t(j)&trial_ts<t(j+1)) = 1;        
+            elseif j == numel(t)
+                low_d_trials(trial_ts>=t(j)) = 1;
+            end
+        end
+    end
+
+    b(logical(low_d_trials),:) = [];
+
     beh = cat(1,beh,b);
+
+    go_licks = cat(2,go_licks,S.all_go_licks);
+    nogo_opto_licks = cat(2,nogo_opto_licks,S.all_opto_nogo_licks);
 
 end
 
-% n_conditions = p amps x opo tf x opto time
+% remove hits where the rt was faster than the cutoff
+beh(beh(beh(:,4)==1,5)<rt_cutoff,:) = [];
+
+
+
+%% n_conditions = p amps x opo tf x opto time
 
 % cell 1 will be no opto
 beh_summ{1} = zeros(numel(unique(beh(:,1))),3);
-% cell 2 will be opto
-beh_summ{2} = zeros(numel(unique(beh(:,1))),numel(unique(beh(~isnan(beh(:,3)),3))),4);
+% remianing cells will be for each opto time
+opto_ts = unique(beh(~isnan(beh(:,3)),3));
+for i = 1:numel(opto_ts)
+    beh_summ{i+1} = zeros(numel(unique(beh(:,1))),3);
+end
 
 p_amps = unique(beh(:,1));
-opto_ts = unique(beh(~isnan(beh(:,3)),3));
-
 cnts = {};
 for i = 1:numel(p_amps)
 
@@ -31,16 +124,22 @@ for i = 1:numel(p_amps)
     opto_pts = all_pts(logical(all_pts(:,2)),:);
     non_opto_pts = all_pts(~logical(all_pts(:,2)),:);
 
+
     if p_amps(i)==0
         fa_rate = nnz(non_opto_pts(:,4)==3)./(nnz(non_opto_pts(:,4)==3)+nnz(non_opto_pts(:,4)==2));
         cnts{1}.n_cws(i) = nnz(non_opto_pts(:,4)==2);
         cnts{1}.n_fas(i) = nnz(non_opto_pts(:,4)==3);
         beh_summ{1}(i,:) = [p_amps(i) fa_rate 0];
+        % deal with opto nogos here because they have no timing relative to
+        % piezo, so it's going to be the same value across all opto times
+        opto_cw_cnts = nnz(opto_pts(:,4)==2);
+        opto_fa_cnts = nnz(opto_pts(:,4)==3);
+        opto_fa_rate = opto_fa_cnts./(opto_cw_cnts+opto_fa_cnts);
     else
         hit_rate = nnz(non_opto_pts(:,4)==1)./(nnz(non_opto_pts(:,4)==1)+nnz(non_opto_pts(:,4)==0));
         cnts{1}.n_hits(i) = nnz(non_opto_pts(:,4)==1);
         cnts{1}.n_misses(i) = nnz(non_opto_pts(:,4)==0);
-        rt = mean(non_opto_pts(:,3),'omitnan');
+        rt = mean(non_opto_pts(:,5),'omitnan');
         beh_summ{1}(i,:) = [p_amps(i) hit_rate rt];
     end
 
@@ -49,108 +148,100 @@ for i = 1:numel(p_amps)
         this_t_opto_pts = opto_pts(opto_pts(:,3)==opto_ts(j),:,:,:,:);
 
         if p_amps(i)==0
-            fa_rate = nnz(this_t_opto_pts(:,4)==3)./(nnz(this_t_opto_pts(:,4)==3)+nnz(this_t_opto_pts(:,4)==2));
-            cnts{2}.n_cws(i,j) = nnz(this_t_opto_pts(:,4)==2);
-            cnts{2}.n_fas(i,j) = nnz(this_t_opto_pts(:,4)==3);
-            beh_summ{2}(i,j,:) = [p_amps(i) opto_ts(j) fa_rate 0];
+            cnts{j+1}.n_cws(i) = opto_cw_cnts;
+            cnts{j+1}.n_fas(i) = opto_fa_cnts;
+            beh_summ{j+1}(i,:) = [p_amps(i) opto_fa_rate 0];
         else
             hit_rate = nnz(this_t_opto_pts(:,4)==1)./(nnz(this_t_opto_pts(:,4)==1)+nnz(this_t_opto_pts(:,4)==0));
-            cnts{2}.n_hits(i,j) = nnz(this_t_opto_pts(:,4)==1);
-            cnts{2}.n_misses(i,j) = nnz(this_t_opto_pts(:,4)==0);
-            rt = mean(this_t_opto_pts(:,3),'omitnan');
-            beh_summ{2}(i,j,:) = [p_amps(i) opto_ts(j) hit_rate rt];
+            cnts{j+1}.n_hits(i) = nnz(this_t_opto_pts(:,4)==1);
+            cnts{j+1}.n_misses(i) = nnz(this_t_opto_pts(:,4)==0);
+            rt = mean(this_t_opto_pts(:,5),'omitnan');
+            beh_summ{j+1}(i,:) = [p_amps(i) hit_rate rt];
         end
     end
-
 end
 
 D = {};
 C = {};
 B = {};
 for i = 1:numel(cnts)
-    for j = 1:numel(cnts{i}.n_hits)
-
-        hits = cnts{i}.n_hits(j);
-        misses = cnts{i}.n_misses(j);
-        correct_witholds = cnts{i}.n_cws;
-        false_alarms = cnts{i}.n_fas;
-        [d,b,c] = dprime(hits,misses,false_alarms,correct_witholds);
+    hit_cnt = cnts{i}.n_hits;
+    miss_cnt = cnts{i}.n_misses;
+    cw_cnt = cnts{i}.n_cws;
+    fa_cnt = cnts{i}.n_fas;
+    for j = 1:numel(hit_cnt)
+        [d,b,c] = dprime(hit_cnt(j),miss_cnt(j),fa_cnt,cw_cnt);
         D{i}(j) = d;
         C{i}(j) = c;
         B{i}(j) = b;
     end
 end
 
-figure, hold on
+%% plotting
+include_amps = [0 0.2 0.6 0.8 0.9 1.1 2];
+include_opto_ts = [0 100];
 
+amp_ixs = logical(sum(p_amps==include_amps,2));
+opto_ixs = find(sum(opto_ts==include_opto_ts,2))';
+
+lgd = {};
+lgd{1} = 'No Opto';
+
+figure
+annotation('textbox', [0.5, 0.9, 0.1, 0.1], 'String', id, ...
+    'EdgeColor', 'none', 'BackgroundColor', 'none','Fontsize',14);
+
+subplot(2,2,1), hold on
 % no opto curve
-plot(beh_summ{1}(:,1),beh_summ{1}(:,2),'-ok');
+plot(beh_summ{1}(amp_ixs,1),beh_summ{1}(amp_ixs,2),'-ok');
 
 % opto curves
-beh_summ{2}(1,2,3) = beh_summ{2}(1,1,3);
-beh_summ{2}(1,3,3) = beh_summ{2}(1,1,3);
-beh_summ{2}(1,4,3) = beh_summ{2}(1,1,3);
-beh_summ{2}(1,5,3) = beh_summ{2}(1,1,3);
-beh_summ{2}(1,6,3) = beh_summ{2}(1,1,3);
+for i = 1:numel(opto_ixs)
+    plot(beh_summ{1}(amp_ixs,1),beh_summ{opto_ixs(i)+1}(amp_ixs,2),'-o');
+    lgd{i+1} = num2str(-1*opto_ts(opto_ixs(i)));
+end
 
-
-plot(beh_summ{2}(:,1,1),beh_summ{2}(:,1,3),'-o');
-plot(beh_summ{2}(:,2,1),beh_summ{2}(:,2,3),'-o');
-plot(beh_summ{2}(:,3,1),beh_summ{2}(:,3,3),'-o');
-plot(beh_summ{2}(:,4,1),beh_summ{2}(:,4,3),'-o');
-plot(beh_summ{2}(:,5,1),beh_summ{2}(:,5,3),'-o');
-plot(beh_summ{2}(:,6,1),beh_summ{2}(:,6,3),'-o');
-    
-
-legend({'No Opto', '20','10','5','-50','-200'});
+legend(lgd);
 xlabel('Piezo Voltage')
 ylabel('P(hit)')
 ax=gca;
 ax.Legend.EdgeColor = 'None';
 ax.Legend.Location = 'SouthEast';
+ylim([0 1])
 
 %
-subplot(1,2,2), hold on
+mdl_fit = {};
+
+subplot(2,2,2), hold on
 ft = fittype('logistic');
-mdl_fit_no = fit(beh_summ{1}([1 2 4:8],1),beh_summ{1}([1 2 4:8],2),ft);
+mdl_fit{1} = fit(beh_summ{1}(amp_ixs,1),beh_summ{1}(amp_ixs,2),ft);
 eval_x = 0:0.01:2;
-fit_points_no = mdl_fit_no(eval_x);
+fit_points = mdl_fit{1}(eval_x);
+plot(eval_x,fit_points,'k')
 
-%
-
-mdl_fit_0 = fit(beh_summ{2}([1 2 4:8],1,1),beh_summ{2}([1 2 4:8],1,3),ft);
-mdl_fit_100 = fit(beh_summ{2}([1 2 4:8],2,1),beh_summ{2}([1 2 4:8],2,3),ft);
-
-eval_x = 0:0.01:2;
-
-fit_points_0 = mdl_fit_0(eval_x);
-fit_points_100 = mdl_fit_100(eval_x);
-
-plot(eval_x,fit_points_no,'k')
-plot(eval_x,fit_points_0,'g')
-plot(eval_x,fit_points_100,'m')
+for i = opto_ixs
+    mdl_fit{i+1} = fit(beh_summ{i+1}(amp_ixs,1),beh_summ{i+1}(amp_ixs,2),ft);
+    fit_points = mdl_fit{i+1}(eval_x);
+    plot(eval_x,fit_points)
+end
 
 xlabel('Piezo Voltage')
 ylabel('P(hit)')
-legend({'No Opto', '0', '-100'});
+legend(lgd);
 ax=gca;
 ax.Legend.EdgeColor = 'None';
 ax.Legend.Location = 'SouthEast';
-
-% plot(beh_summ{1}(1:end,1),beh_summ{1}(1:end,2),'ok')
-% plot(beh_summ{2}(:,2,1),mean(beh_summ{2}(:,2,3),2),'og')
-% plot(beh_summ{2}(:,1,1),mean(beh_summ{2}(:,1,3),2),'om')
+ylim([0 1])
 
 %
-
-all_go_licks(all_go_licks==0) = NaN;
-
+go_licks(go_licks==0) = NaN;
 pre_post = [-0.5 2];
 lick_t = pre_post(1):1/fs:pre_post(2);
+
 subplot(2,2,3), hold
-scatter(lick_t,all_go_licks+linspace(1,size(all_go_licks,2),size(all_go_licks,2)),'Marker','o','SizeData',4,'MarkerFaceColor','k','MarkerEdgeColor','none','MarkerFaceAlpha', 0.01)
+scatter(lick_t,go_licks+linspace(1,size(go_licks,2),size(go_licks,2)),'Marker','o','SizeData',4,'MarkerFaceColor','k','MarkerEdgeColor','none','MarkerFaceAlpha', 0.01)
 xlim(pre_post)
-ylim([0 size(all_go_licks,2)])
+ylim([0 size(go_licks,2)])
 xlabel('Time (S)')
 ylabel('Trial Number')
 line([0 0],ylim,'Color','r','LineWidth',2)
@@ -158,9 +249,23 @@ line([0 0],ylim,'Color','r','LineWidth',2)
 %
 
 subplot(2,2,4),
-bar([beh_summ{1}(1,2) mean(beh_summ{2}(1,:,3),2)],'FaceColor',[0.25 0.1 0.5],'EdgeColor','None')
+bar([beh_summ{1}(1,2) mean(beh_summ{2}(1,2),2)],'FaceColor',[0.25 0.1 0.5],'EdgeColor','None')
 ylim([0 1])
-ylabel('P|fa|')
+ylabel('P(FA)')
 xlabel('Condition')
 ax=gca;
 ax.XTickLabel = {'No Opto','Opto'};
+
+figure, hold on
+for i = 1:size(running_dprime_days,2)
+    plot(smoothdata(running_dprime_days{i},2,'gauss',5))
+end
+line(xlim,[0 0],'Color','k','LineStyle','--')
+
+
+figure, hold on
+plot(beh_summ{1}(amp_ixs,1),D{1}(amp_ixs),'k')
+for i = 1:numel(opto_ixs)
+    plot(beh_summ{1}(amp_ixs,1),D{opto_ixs(i)+1}(amp_ixs))
+end
+

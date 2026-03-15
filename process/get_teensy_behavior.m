@@ -175,3 +175,4 @@ S.opto = opto;
 S.fs = fs;
 S.all_go_licks = all_go_licks;
 S.all_opto_nogo_licks = all_opto_nogo_licks;
+S.file_break_ixs = brk_ixs;
