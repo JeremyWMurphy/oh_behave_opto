@@ -5,7 +5,7 @@ last_ix = 0;
 
 for i = 1:numel(runs)
 
-    fid = fopen([pth runs{i} '\data_stream.csv']);
+    fid = fopen([pth runs{i} '/data_stream.csv']);
     data = fscanf(fid,'<%d,%d,%d,%d,%d,%d,%d,%d,%d,%d>\n');
     fclose(fid);
 

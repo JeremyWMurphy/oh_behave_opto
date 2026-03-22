@@ -1,10 +1,10 @@
 function [] = get_teensy_behavior_compile(pth,compile_days,runs,id)
 
 fs = 2e3;
-rt_cutoff = 0.150;
+rt_cutoff = 0.200;
 
 d_cuttoff = 0;
-d_prime_bin_sec = 60; 
+d_prime_bin_sec = 120;
 
 % beh will be [piezo_amp opto_trl opto_t outcome rt trial_ix i];
 % hit = 1, miss = 0, cw = 2, fa = 3
@@ -36,7 +36,7 @@ for i = 1:numel(compile_days)
     fa_vec = zeros(b(end,7),1);
     fa_ixs = b(b(:,4)==4,6);
     fa_vec(fa_ixs) = 1;
-    
+
     bin_sz = fs * d_prime_bin_sec;
     sz = size(hit_vec,1);
     bin_rem = mod(sz,bin_sz);
@@ -85,7 +85,7 @@ for i = 1:numel(compile_days)
     for j = 1:numel(t)
         if any(t(j)==bad_ts)
             if j ~= numel(t)
-                low_d_trials(trial_ts>=t(j)&trial_ts<t(j+1)) = 1;        
+                low_d_trials(trial_ts>=t(j)&trial_ts<t(j+1)) = 1;
             elseif j == numel(t)
                 low_d_trials(trial_ts>=t(j)) = 1;
             end
@@ -162,24 +162,24 @@ for i = 1:numel(p_amps)
 end
 
 D = {};
-C = {};
-B = {};
 for i = 1:numel(cnts)
     hit_cnt = cnts{i}.n_hits;
     miss_cnt = cnts{i}.n_misses;
     cw_cnt = cnts{i}.n_cws;
     fa_cnt = cnts{i}.n_fas;
     for j = 1:numel(hit_cnt)
-        [d,b,c] = dprime(hit_cnt(j),miss_cnt(j),fa_cnt,cw_cnt);
+
+        zHit = norminv(hit_cnt(j)./(hit_cnt(j) + miss_cnt(j)));
+        zFA  = norminv(fa_cnt./(fa_cnt + cw_cnt));
+        d = zHit - zFA;
         D{i}(j) = d;
-        C{i}(j) = c;
-        B{i}(j) = b;
+
     end
 end
 
 %% plotting
 include_amps = [0 0.2 0.6 0.8 0.9 1.1 2];
-include_opto_ts = [0 100];
+include_opto_ts = [-20 0 50 100];
 
 amp_ixs = logical(sum(p_amps==include_amps,2));
 opto_ixs = find(sum(opto_ts==include_opto_ts,2))';
@@ -187,13 +187,14 @@ opto_ixs = find(sum(opto_ts==include_opto_ts,2))';
 lgd = {};
 lgd{1} = 'No Opto';
 
-figure
+figure, hold on
 annotation('textbox', [0.5, 0.9, 0.1, 0.1], 'String', id, ...
     'EdgeColor', 'none', 'BackgroundColor', 'none','Fontsize',14);
 
 subplot(2,2,1), hold on
+
 % no opto curve
-plot(beh_summ{1}(amp_ixs,1),beh_summ{1}(amp_ixs,2),'-ok');
+plot(beh_summ{1}(amp_ixs,1),beh_summ{1}(amp_ixs,2),'-ow');
 
 % opto curves
 for i = 1:numel(opto_ixs)
@@ -217,7 +218,7 @@ ft = fittype('logistic');
 mdl_fit{1} = fit(beh_summ{1}(amp_ixs,1),beh_summ{1}(amp_ixs,2),ft);
 eval_x = 0:0.01:2;
 fit_points = mdl_fit{1}(eval_x);
-plot(eval_x,fit_points,'k')
+plot(eval_x,fit_points,'w')
 
 for i = opto_ixs
     mdl_fit{i+1} = fit(beh_summ{i+1}(amp_ixs,1),beh_summ{i+1}(amp_ixs,2),ft);
@@ -239,7 +240,7 @@ pre_post = [-0.5 2];
 lick_t = pre_post(1):1/fs:pre_post(2);
 
 subplot(2,2,3), hold
-scatter(lick_t,go_licks+linspace(1,size(go_licks,2),size(go_licks,2)),'Marker','o','SizeData',4,'MarkerFaceColor','k','MarkerEdgeColor','none','MarkerFaceAlpha', 0.01)
+scatter(lick_t,go_licks+linspace(1,size(go_licks,2),size(go_licks,2)),'Marker','o','SizeData',4,'MarkerFaceColor','w','MarkerEdgeColor','none','MarkerFaceAlpha', 0.01)
 xlim(pre_post)
 ylim([0 size(go_licks,2)])
 xlabel('Time (S)')
@@ -256,15 +257,15 @@ xlabel('Condition')
 ax=gca;
 ax.XTickLabel = {'No Opto','Opto'};
 
-figure, hold on
-for i = 1:size(running_dprime_days,2)
-    plot(smoothdata(running_dprime_days{i},2,'gauss',5))
-end
-line(xlim,[0 0],'Color','k','LineStyle','--')
+% figure, hold on
+% for i = 1:size(running_dprime_days,2)
+%     plot(smoothdata(running_dprime_days{i},2,'gauss',5))
+% end
+% line(xlim,[0 0],'Color','k','LineStyle','--')
 
 
 figure, hold on
-plot(beh_summ{1}(amp_ixs,1),D{1}(amp_ixs),'k')
+plot(beh_summ{1}(amp_ixs,1),D{1}(amp_ixs),'w')
 for i = 1:numel(opto_ixs)
     plot(beh_summ{1}(amp_ixs,1),D{opto_ixs(i)+1}(amp_ixs))
 end
