@@ -1,9 +1,9 @@
 function [] = oh_behave_detect_process()
 
 %%
-do_subj = 3;
+do_subj = ;
 
-top_pth = '/Users/jeremy/Documents/work/projects/beta_detect/behavior/';
+top_pth = 'D:/data/Cue_S2_POm/behavior/';
 
 fs = 2e3;
 switch do_subj
@@ -68,7 +68,7 @@ end
 
 %%
 
-compile_days = [8:11];
+compile_days = [1:11];
 get_teensy_behavior_compile(pth,compile_days,run_days,id)
     
 

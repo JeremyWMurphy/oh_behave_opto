@@ -15,10 +15,10 @@ config.prcnt_go_p_alone = 0.75; % percentage of trials that are go trials
 config.prcnt_go_p_opto = 0.75; % percentage of trials that are go trials
 config.prcnt_opto = 0.75;
 % piezo
-config.sig_amps = [0.2 0.6 0.8 0.9 1.1 2]; % amplitudes of stimuli, Volts
-config.prcnt_amps = [0.167 0.167 0.167 0.167 0.167 0.167]; % proportion of different amplitudes to present - needs to add to 1
+config.sig_amps = [0.1 0.2 0.3 0.4 0.6 0.8 1.1]; % amplitudes of stimuli, Volts
+config.prcnt_amps = repmat(1/numel(config.sig_amps),1,numel(config.sig_amps)); % proportion of different amplitudes to present - needs to add to 1
 % opto
-config.opto_times = [-200 -100 -50 0 20];
+config.opto_times = [-200 -75 -50 -25];
 
 config.n_resets = Inf; % how many times to reset iti on early lick
 
@@ -26,7 +26,8 @@ config.play_error_sound = false; % play gross noise if early lick
 config.error_timeout_len = 10; % on a FA give a timeout this longe, in seconds
 config.play_hit_sound = false; % play chirp on hit
 config.play_fa_sound = false; % play long gross noise if early lick
-config.fa_timeout_len = 5; % on a FA give a timeout this longe, in seconds
+config.fa_timeout_len = [10 15]; % on a FA give a timeout this longe, in seconds
+
 
 %% other parameters, more fixed
 
@@ -44,7 +45,6 @@ config.opto_chan = '1';
 config.opto_amp = 3;
 config.opto_pulse_type = '1'; % on teensy 1 = sqaure wave
 config.opto_len = '50'; % ms
-
 
 % Teensy parameters
 config.serial_port = 'COM3';
@@ -332,8 +332,10 @@ while f.UserData.state ~= 3
                 n_resp_types(4) = n_resp_types(4)+1;
                 if config.play_fa_sound
                     sound(fa_sound,config.sound_fs);
-                    pause(config.fa_timeout_len);
-                end         
+                end
+                if config.fa_timeout_len>0
+                   pause(round(config.fa_timeout_len(1) + ((config.fa_timeout_len(2) - config.fa_timeout_len(1)) * rand(1)),2));
+                end
                 n_reset_cnts = 0;
             elseif trial_outcome == 5 % early lick
                 el_txt.FontColor = [0 1 1];

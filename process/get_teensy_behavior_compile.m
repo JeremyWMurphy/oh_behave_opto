@@ -1,7 +1,7 @@
 function [] = get_teensy_behavior_compile(pth,compile_days,runs,id)
 
 fs = 2e3;
-rt_cutoff = 0.200;
+rt_cutoff = 100;
 
 d_cuttoff = 0;
 d_prime_bin_sec = 120;
@@ -15,6 +15,7 @@ running_dprime_days = {};
 running_dprime_cont = [];
 for i = 1:numel(compile_days)
 
+    fprintf(['\nDoing ' pth 'behavior_' runs{compile_days(i)} '.mat'])
     load([pth 'behavior_' runs{compile_days(i)} '.mat'],'S');
     b = S.beh;
     first_hit = find(b(:,4)==1,1,'first');
@@ -30,11 +31,11 @@ for i = 1:numel(compile_days)
     miss_vec(miss_ixs) = 1;
 
     cw_vec = zeros(b(end,7),1);
-    cw_ixs = b(b(:,4)==3,6);
+    cw_ixs = b(b(:,4)==2,6);
     cw_vec(cw_ixs) = 1;
 
     fa_vec = zeros(b(end,7),1);
-    fa_ixs = b(b(:,4)==4,6);
+    fa_ixs = b(b(:,4)==3,6);
     fa_vec(fa_ixs) = 1;
 
     bin_sz = fs * d_prime_bin_sec;
@@ -58,13 +59,11 @@ for i = 1:numel(compile_days)
     bin_cw = sum(cw,1);
     bin_fa = sum(fa,1);
 
-    bin_hits(bin_hits==0) = 0.001;
-    bin_miss(bin_miss==0) = 0.001;
-    bin_cw(bin_cw==0) = 0.001;
-    bin_fa(bin_fa==0) = 0.001;
+    bin_hits(bin_hits==0) = 0.5;
+    bin_miss(bin_miss==0) = 0.5;
+    bin_cw(bin_cw==0) = 0.5;
+    bin_fa(bin_fa==0) = 0.5;
 
-    bin_fa(bin_fa==0) = 0.05;
-    bin_miss(bin_miss==0) = 0.05;
     pHit = bin_hits./(bin_hits+bin_miss); % pHit = P(YES|SIGNAL)
     pFA  = bin_fa./(bin_fa+bin_cw); % pFA = P(YES|NOISE)
     %-- Convert to Z scores, no error checking
@@ -94,6 +93,10 @@ for i = 1:numel(compile_days)
 
     b(logical(low_d_trials),:) = [];
 
+    %[bad_trials] = bad_trials_response_rate(fa_vec,cw_vec,hit_vec,miss_vec);
+    %[bad_trials] = mov_d_thresh(fa_vec,cw_vec,hit_vec,miss_vec);
+    %b(bad_trials,:) = [];
+
     beh = cat(1,beh,b);
 
     go_licks = cat(2,go_licks,S.all_go_licks);
@@ -103,8 +106,6 @@ end
 
 % remove hits where the rt was faster than the cutoff
 beh(beh(beh(:,4)==1,5)<rt_cutoff,:) = [];
-
-
 
 %% n_conditions = p amps x opo tf x opto time
 
@@ -123,7 +124,6 @@ for i = 1:numel(p_amps)
     all_pts = beh(beh(:,1)==p_amps(i),:);
     opto_pts = all_pts(logical(all_pts(:,2)),:);
     non_opto_pts = all_pts(~logical(all_pts(:,2)),:);
-
 
     if p_amps(i)==0
         fa_rate = nnz(non_opto_pts(:,4)==3)./(nnz(non_opto_pts(:,4)==3)+nnz(non_opto_pts(:,4)==2));
@@ -164,9 +164,11 @@ end
 D = {};
 for i = 1:numel(cnts)
     hit_cnt = cnts{i}.n_hits;
+    hit_cnt(hit_cnt==0) = 0.5;
     miss_cnt = cnts{i}.n_misses;
     cw_cnt = cnts{i}.n_cws;
     fa_cnt = cnts{i}.n_fas;
+    fa_cnt(fa_cnt==0) = 0.5;
     for j = 1:numel(hit_cnt)
 
         zHit = norminv(hit_cnt(j)./(hit_cnt(j) + miss_cnt(j)));
@@ -177,96 +179,8 @@ for i = 1:numel(cnts)
     end
 end
 
-%% plotting
-include_amps = [0 0.2 0.6 0.8 0.9 1.1 2];
-include_opto_ts = [-20 0 50 100];
-
-amp_ixs = logical(sum(p_amps==include_amps,2));
-opto_ixs = find(sum(opto_ts==include_opto_ts,2))';
-
-lgd = {};
-lgd{1} = 'No Opto';
-
-figure, hold on
-annotation('textbox', [0.5, 0.9, 0.1, 0.1], 'String', id, ...
-    'EdgeColor', 'none', 'BackgroundColor', 'none','Fontsize',14);
-
-subplot(2,2,1), hold on
-
-% no opto curve
-plot(beh_summ{1}(amp_ixs,1),beh_summ{1}(amp_ixs,2),'-ow');
-
-% opto curves
-for i = 1:numel(opto_ixs)
-    plot(beh_summ{1}(amp_ixs,1),beh_summ{opto_ixs(i)+1}(amp_ixs,2),'-o');
-    lgd{i+1} = num2str(-1*opto_ts(opto_ixs(i)));
-end
-
-legend(lgd);
-xlabel('Piezo Voltage')
-ylabel('P(hit)')
-ax=gca;
-ax.Legend.EdgeColor = 'None';
-ax.Legend.Location = 'SouthEast';
-ylim([0 1])
-
-%
-mdl_fit = {};
-
-subplot(2,2,2), hold on
-ft = fittype('logistic');
-mdl_fit{1} = fit(beh_summ{1}(amp_ixs,1),beh_summ{1}(amp_ixs,2),ft);
-eval_x = 0:0.01:2;
-fit_points = mdl_fit{1}(eval_x);
-plot(eval_x,fit_points,'w')
-
-for i = opto_ixs
-    mdl_fit{i+1} = fit(beh_summ{i+1}(amp_ixs,1),beh_summ{i+1}(amp_ixs,2),ft);
-    fit_points = mdl_fit{i+1}(eval_x);
-    plot(eval_x,fit_points)
-end
-
-xlabel('Piezo Voltage')
-ylabel('P(hit)')
-legend(lgd);
-ax=gca;
-ax.Legend.EdgeColor = 'None';
-ax.Legend.Location = 'SouthEast';
-ylim([0 1])
-
-%
-go_licks(go_licks==0) = NaN;
-pre_post = [-0.5 2];
-lick_t = pre_post(1):1/fs:pre_post(2);
-
-subplot(2,2,3), hold
-scatter(lick_t,go_licks+linspace(1,size(go_licks,2),size(go_licks,2)),'Marker','o','SizeData',4,'MarkerFaceColor','w','MarkerEdgeColor','none','MarkerFaceAlpha', 0.01)
-xlim(pre_post)
-ylim([0 size(go_licks,2)])
-xlabel('Time (S)')
-ylabel('Trial Number')
-line([0 0],ylim,'Color','r','LineWidth',2)
-
-%
-
-subplot(2,2,4),
-bar([beh_summ{1}(1,2) mean(beh_summ{2}(1,2),2)],'FaceColor',[0.25 0.1 0.5],'EdgeColor','None')
-ylim([0 1])
-ylabel('P(FA)')
-xlabel('Condition')
-ax=gca;
-ax.XTickLabel = {'No Opto','Opto'};
-
-% figure, hold on
-% for i = 1:size(running_dprime_days,2)
-%     plot(smoothdata(running_dprime_days{i},2,'gauss',5))
-% end
-% line(xlim,[0 0],'Color','k','LineStyle','--')
+save([pth 'all_behavior'],'D','beh_summ','cnts','p_amps','opto_ts','go_licks')
 
 
-figure, hold on
-plot(beh_summ{1}(amp_ixs,1),D{1}(amp_ixs),'w')
-for i = 1:numel(opto_ixs)
-    plot(beh_summ{1}(amp_ixs,1),D{opto_ixs(i)+1}(amp_ixs))
-end
+
 

@@ -1,9 +1,9 @@
 function [] = oh_behave_detect_process()
 
 %%
-do_subj = 1;
+do_subj = 2;
 
-top_pth = '/Users/jeremy/Documents/work/projects/beta_detect/behavior/';
+top_pth = 'D:/data/Cue_S2_POm/behavior/';
 
 fs = 2e3;
 switch do_subj
@@ -39,8 +39,8 @@ switch do_subj
         id = '160';
         pth = [top_pth 'gpr26_160/'];
         runs = {'160_2026-02-28_T18-08-53','160_2026-02-28_T17-07-11', ...
-            '160_2026-03-02_T14-34-51' '160_2026-03-03_T16-13-01', ...
-            '160_2026-03-04_T15-45-04'  '160_2026-03-05_T14-26-37', ...
+            '160_2026-03-02_T14-34-51', '160_2026-03-03_T16-13-01', ...
+            '160_2026-03-04_T15-45-04', '160_2026-03-05_T14-26-37', ...
             '160_2026-03-06_T15-22-52','160_2026-03-09_T15-37-07', ...
             '160_2026-03-11_T16-59-01','160_2026-03-13_T16-37-02', ...
             '160_2026-03-13_T16-45-27','160_2026-03-14_T15-17-22', ...
@@ -49,8 +49,10 @@ switch do_subj
         
 end
 
+%%
+
 run_days = {};
-read_in_data = 0;
+read_in_data = 1;
 for i = unique(exp_day)
     rns = {runs{exp_day==i}};
     run_day = rns{1}(5:14);
