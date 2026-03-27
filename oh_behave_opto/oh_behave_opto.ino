@@ -10,38 +10,40 @@ Serial interaction
 
 const uint Fs = 2000;  // Teensy sampling rate
 
-bool enforceEarlyLick = false; // error out if the mouse licks pre-stim 
-uint lickMax = 20; // how many licks are too many licks
-uint lickDebounce = 0.05 * Fs; // so as not to over-count licks, mouse would have to lick >= 20 Hz for this to under-count 
+bool enforceEarlyLick = false;  // error out if the mouse licks pre-stim
+uint lickMax = 20;              // how many licks are too many licks
+uint lickDebounce = 0.05 * Fs;  // so as not to over-count licks, mouse would have to lick >= 20 Hz for this to under-count
 
-bool waitForNextFrame = false; // if frame counting wait for a new frame to start to present a stimulus
-bool vacReward = true; // whether to suck off reward using solenoid 2
+bool waitForNextFrame = false;  // if frame counting wait for a new frame to start to present a stimulus
+bool vacReward = true;          // whether to suck off reward using solenoid 2
 
-uint contingentStim = 0; // index of the analog channel that the animal is responding to / detecting
+uint contingentStim = 0;  // index of the analog channel that the animal is responding to / detecting
 
 // time lengths
-uint trigLen =    Fs * 0.2; // trigger lenght in seconds
-uint respLen =    Fs * 2;   // how long from stim start is a response considered valid,
-uint valveLen =   Fs * 1;   // how long to open reward valve in samples
-uint consumeLen = Fs * 3;   // how long from reward administration does the animal have to consume the reward
-uint vacLen =     Fs * 1;   // how long to open reward valve in samples
-uint pairDelay =  Fs * 0;   // in pairing trials, time between stim and reward
-uint removeLen =  Fs * 1;
+uint trigLen = Fs * 0.2;   // trigger lenght in seconds
+uint respLen = Fs * 2;     // how long from stim start is a response considered valid,
+uint valveLen = Fs * 1;    // how long to open reward valve in samples
+uint consumeLen = Fs * 3;  // how long from reward administration does the animal have to consume the reward
+uint vacLen = Fs * 1;      // how long to open reward valve in samples
+uint pairDelay = Fs * 0;   // in pairing trials, time between stim and reward
+uint removeLen = Fs * 1;
 uint transmitLen = Fs * 1;
+
+bool reportData = false;
 
 // channels
 // ins
 const uint wheelChan = 14;  // analog in
 const uint frameChan = 23;  // frame counter channel, interrupt
-const uint lickChan  = 22;  //lick channel
+const uint lickChan = 22;   //lick channel
 // outs
 const uint trigChan1 = 0;  // trigger channel;
 const uint trigChan2 = 1;  // trigger channel;
 const uint trigChan3 = 2;  // trigger channel;
 const uint trigChan4 = 3;  // trigger channel;
 
-const uint valveChan1 = 4; // reward valve
-const uint valveChan2 = 6; // vac line valve for reward removal
+const uint valveChan1 = 4;  // reward valve
+const uint valveChan2 = 6;  // vac line valve for reward removal
 
 volatile uint16_t wheelVal = 0;
 volatile int lickVal = 0;
@@ -49,25 +51,25 @@ volatile int rewardValveVal = 0;
 volatile int removeValveVal = 0;
 
 // state definitions
-const uint IDLE       = 0;
-const uint RESET      = 1;
-const uint GO         = 2;
-const uint NOGO       = 3;
-const uint PAIR       = 4; 
-const uint VALVEO     = 5; 
-const uint VALVEC     = 6; 
-const uint TRIGGER    = 7; 
-const uint REWARD     = 8; 
-const uint STIMULUS   = 9; 
+const uint IDLE = 0;
+const uint RESET = 1;
+const uint GO = 2;
+const uint NOGO = 3;
+const uint PAIR = 4;
+const uint VALVEO = 5;
+const uint VALVEC = 6;
+const uint TRIGGER = 7;
+const uint REWARD = 8;
+const uint STIMULUS = 9;
 const uint REMOVEREWARD = 11;
 const uint TRIALEND = 12;
 volatile uint State = IDLE;
 
 // Behavior tracking
-const uint HIT  = 1;
+const uint HIT = 1;
 const uint MISS = 2;
-const uint CW   = 3;
-const uint FA   = 4;
+const uint CW = 3;
+const uint FA = 4;
 const uint LICK = 5;
 volatile uint trialOutcome = 0;
 volatile uint latestOutcome = 0;
@@ -119,9 +121,9 @@ volatile uint BaseCntr[4] = { 0, 0, 0, 0 };     // for keeping track of where we
 volatile uint whaleCntr[4] = { 0, 0, 0, 0 };    //
 volatile uint waveParams[7] = { 0, 0, 0, 0, 0, 0, 0 };
 volatile bool inIpi[4] = { false, false, false, false };
-volatile bool inBase[4] = {true, true, true, true};
+volatile bool inBase[4] = { true, true, true, true };
 volatile bool stimOn[4] = { true, true, true, true };
-volatile bool stimBegin[4] = {false, false, false, false};
+volatile bool stimBegin[4] = { false, false, false, false };
 volatile uint curVal[4] = { 0, 0, 0, 0 };
 volatile uint chanSelect = 0;  //
 const uint waveMax = 4095;     // it's a 12bit dac, so this will always be the max voltage out
@@ -138,7 +140,7 @@ uint param_val;
 volatile uint32_t loopCount = 0;
 volatile uint32_t frameCount = 0;
 volatile uint32_t curFrame = 0;       // for waiting for next frame to begin trial
-volatile uint32_t lastFrame = 0; // for triggering frames of a camera
+volatile uint32_t lastFrame = 0;      // for triggering frames of a camera
 volatile bool frameWaitStart = true;  // for waiting for next frame to begin trial
 
 // objs
@@ -158,13 +160,13 @@ void setup() {
   while (!mcp.begin(0x60)) {  // Be careful, this could be 0x60 or 0x64
     Serial.println("Failed to find MCP4728 chip");
   }
-  
+
   Serial.println("Found MCP4728 chip");
   mcp.setChannelValue(MCP4728_CHANNEL_A, 0);
   mcp.setChannelValue(MCP4728_CHANNEL_B, 0);
   mcp.setChannelValue(MCP4728_CHANNEL_C, 0);
   mcp.setChannelValue(MCP4728_CHANNEL_D, 0);
-  
+
   Wire.setClock(1000000);  // holy fucking shit, this must be set after mcp.begin or else it doesn't work
 
   // setup io
@@ -178,19 +180,18 @@ void setup() {
 
   pinMode(trigChan1, OUTPUT);
   digitalWrite(trigChan1, LOW);
-  
+
   pinMode(trigChan2, OUTPUT);
   digitalWrite(trigChan2, LOW);
-  
+
   pinMode(trigChan3, OUTPUT);
   digitalWrite(trigChan3, LOW);
-  
+
   pinMode(trigChan4, OUTPUT);
   digitalWrite(trigChan4, LOW);
 
   // start main interrupt timer program at specified sample rate
   t1.begin(ohBehave, 1E6 / Fs);
-
 }
 
 // functions called by timer should be short, run as quickly as
@@ -220,7 +221,7 @@ void ohBehave() {
   } else if (State == NOGO) {  // NO-GO trial
     goNoGo();
 
-  } else if (State == PAIR){ // pairing trial
+  } else if (State == PAIR) {  // pairing trial
     pairing();
 
   } else if (State == TRIGGER) {  // fire triggers
@@ -234,17 +235,16 @@ void ohBehave() {
 
   } else if (State == REWARD) {  // trigger a typical reward
     justReward();
-  
+
   } else if (State == STIMULUS) {  // just send the stimulus
     justStim();
-  
-  } else if (State == REMOVEREWARD){
+
+  } else if (State == REMOVEREWARD) {
     removeReward();
 
-  } else if (State == TRIALEND){
-    endOfTrialCleanUp();    
+  } else if (State == TRIALEND) {
+    endOfTrialCleanUp();
   }
-  
 }
 
 // State functions
@@ -252,37 +252,37 @@ void goNoGo() {
   if (waitForNextFrame && frameWaitStart) {  // if we're waiting for the next frame to start
     curFrame = frameCount;
     frameWaitStart = false;
-  } else if (!waitForNextFrame || frameCount > curFrame) { // if we aren't waiting for the next frame or it is the next frame, start the trial
-    waveWrite();  // present stim
-    if (!stimBegin[contingentStim]){
-      if (enforceEarlyLick){
-        if (lickVal==HIGH && firstLick){
+  } else if (!waitForNextFrame || frameCount > curFrame) {  // if we aren't waiting for the next frame or it is the next frame, start the trial
+    waveWrite();                                            // present stim
+    if (!stimBegin[contingentStim]) {
+      if (enforceEarlyLick) {
+        if (lickVal == HIGH && firstLick) {
           lickCount = 1;
           firstLick = false;
-        } else if (lickLow < lickDebounce){
-          if (lickVal==LOW){
+        } else if (lickLow < lickDebounce) {
+          if (lickVal == LOW) {
             lickLow++;
           } else {
             lickLow = 0;
           }
-        } else if (lickLow >= lickDebounce && lickVal==HIGH) {
+        } else if (lickLow >= lickDebounce && lickVal == HIGH) {
           lickCount++;
           lickLow = 0;
         }
-        if (lickCount > lickMax){
+        if (lickCount > lickMax) {
           latestOutcome = LICK;
           lickCount = 0;
           lickLow = 0;
           firstLick = true;
           State = TRIALEND;
         }
-      }      
-    } else if (stimBegin[contingentStim] && !respEnd){
-      if (respStart){ // as soon as the contingent stim starts, exit no lick period and begin response window                    
+      }
+    } else if (stimBegin[contingentStim] && !respEnd) {
+      if (respStart) {  // as soon as the contingent stim starts, exit no lick period and begin response window
         respT = loopCount;
         respStart = false;
-      }          
-      if (!hasResponded) {    
+      }
+      if (!hasResponded) {
         if (lickVal == HIGH) {  // check for licks, if any, then HIT or FA, mark it, don't keep checking
           hasResponded = true;
         }
@@ -293,11 +293,11 @@ void goNoGo() {
       }
 
     } else if (respEnd) {  // if stim and resp window are both over, evaluate outcome
- 
+
       if (hasResponded) {  // if there was a response, assign hit or fa
-        if (State == GO){
+        if (State == GO) {
           latestOutcome = HIT;
-        } else if (State == NOGO){
+        } else if (State == NOGO) {
           latestOutcome = FA;
         }
       } else {  // or there was no response, assign miss or cw
@@ -308,12 +308,11 @@ void goNoGo() {
         }
       }
 
-      if (latestOutcome == HIT){
-          State = REWARD;
+      if (latestOutcome == HIT) {
+        State = REWARD;
       } else {
         State = TRIALEND;
       }
-
     }
   }
 }
@@ -323,33 +322,33 @@ void pairing() {
   if (waitForNextFrame && frameWaitStart) {  // if we're waiting for the next frame to start
     curFrame = frameCount;
     frameWaitStart = false;
-  } else if (!waitForNextFrame || frameCount > curFrame) { // if we aren't waiting for the next frame or it is the next frame, start the trial
-    waveWrite();  // present stim
-    if (!stimBegin[contingentStim]){
-      if (enforceEarlyLick){
-        if (lickVal==HIGH && firstLick){
+  } else if (!waitForNextFrame || frameCount > curFrame) {  // if we aren't waiting for the next frame or it is the next frame, start the trial
+    waveWrite();                                            // present stim
+    if (!stimBegin[contingentStim]) {
+      if (enforceEarlyLick) {
+        if (lickVal == HIGH && firstLick) {
           lickCount = 1;
           firstLick = false;
-        } else if (lickLow < lickDebounce){
-          if (lickVal==LOW){
+        } else if (lickLow < lickDebounce) {
+          if (lickVal == LOW) {
             lickLow++;
           } else {
             lickLow = 0;
           }
-        } else if (lickLow >= lickDebounce && lickVal==HIGH) {
+        } else if (lickLow >= lickDebounce && lickVal == HIGH) {
           lickCount++;
           lickLow = 0;
         }
-        if (lickCount > lickMax){
+        if (lickCount > lickMax) {
           latestOutcome = LICK;
           lickCount = 0;
           lickLow = 0;
           firstLick = true;
           State = TRIALEND;
         }
-      } 
-    } else if (stimBegin[contingentStim] && !respEnd){
-      if (respStart){ // as soon as the contingent stim starts, exit no lick period and begin response window                    
+      }
+    } else if (stimBegin[contingentStim] && !respEnd) {
+      if (respStart) {  // as soon as the contingent stim starts, exit no lick period and begin response window
         respT = loopCount;
         respStart = false;
       }
@@ -369,13 +368,13 @@ void justStim() {
   if (waitForNextFrame && frameWaitStart) {  // if we're waiting for the next frame to start
     curFrame = frameCount;
     frameWaitStart = false;
-  } else if (!waitForNextFrame || frameCount > curFrame) {   
-    waveWrite();  // present stim
+  } else if (!waitForNextFrame || frameCount > curFrame) {
+    waveWrite();    // present stim
     if (stimEnd) {  // if stim and resp window are both over, evaluate outcome
-        State = TRIALEND;
+      State = TRIALEND;
     }
   }
-} 
+}
 
 void justReward() {
   // so you can just push a button and get a typical reward
@@ -387,22 +386,21 @@ void justReward() {
     digitalWrite(valveChan1, HIGH);
   } else {
     digitalWrite(valveChan1, LOW);
-    if (consumeStart){
+    if (consumeStart) {
       consumeT = loopCount;
       consumeStart = false;
     }
-    if (loopCount - consumeT > consumeLen){
-      if (vacReward){
+    if (loopCount - consumeT > consumeLen) {
+      if (vacReward) {
         State = REMOVEREWARD;
       } else {
         State = TRIALEND;
       }
     }
-  } 
-
+  }
 }
 
-void removeReward(){
+void removeReward() {
   if (removeStart) {
     removeT = loopCount;
     removeStart = false;
@@ -412,20 +410,20 @@ void removeReward(){
   }
 }
 
-void endOfTrialCleanUp(){
+void endOfTrialCleanUp() {
 
   trialOutcome = latestOutcome;
 
-  if (trialEndStart){
-    
+  if (trialEndStart) {
+
     trialEndStart = false;
     transmitT = loopCount;
-    // general end of trial/state reset 
+    // general end of trial/state reset
     for (int i = 0; i < 4; i++) {
       stimOn[i] = true;
       stimBegin[i] = false;
       inBase[i] = true;
-      BaseCntr[i] = 0; 
+      BaseCntr[i] = 0;
       repCntr[i] = 0;
       whaleCntr[i] = 0;
       wavIncrmntr[i] = 0;
@@ -439,6 +437,10 @@ void endOfTrialCleanUp(){
     digitalWrite(trigChan2, LOW);
     digitalWrite(trigChan3, LOW);
     digitalWrite(trigChan4, LOW);
+    mcp.setChannelValue(MCP4728_CHANNEL_A, 0);
+    mcp.setChannelValue(MCP4728_CHANNEL_B, 0);
+    mcp.setChannelValue(MCP4728_CHANNEL_C, 0);
+    mcp.setChannelValue(MCP4728_CHANNEL_D, 0);
     stimEnd = false;
     respEnd = false;
     hasResponded = false;
@@ -450,13 +452,12 @@ void endOfTrialCleanUp(){
     lickCount = 0;
     lickLow = 0;
     firstLick = true;
-  } else if (loopCount - transmitT > transmitLen){   
+  } else if (loopCount - transmitT > transmitLen) {
     trialEndStart = true;
     trialOutcome = 0;
     latestOutcome = 0;
     State = IDLE;
   }
-
 }
 
 void fireTrig() {
@@ -466,7 +467,7 @@ void fireTrig() {
     trigStart = false;
   }
   if (loopCount - trigT > trigLen) {
-    State = IDLE; 
+    State = IDLE;
     trigStart = true;
     digitalWrite(trigChan1, LOW);
     digitalWrite(trigChan2, LOW);
@@ -485,25 +486,25 @@ void fireTrig() {
 //waveform tracker/genrator
 void waveWrite() {
   // waveform generator
-  for (int i = 0; i < 4; i++) {  // for each dac channel
-    if (stimOn[i]) {  // if there's a stim on
-      if (inBase[i] && waveBase[i]>0) {  // is it in baseline?
-        curVal[i] = 0;  // then output stays at 0
-        BaseCntr[i]++;  // increment the baseline counter
+  for (int i = 0; i < 4; i++) {            // for each dac channel
+    if (stimOn[i]) {                       // if there's a stim on
+      if (inBase[i] && waveBase[i] > 0) {  // is it in baseline?
+        curVal[i] = 0;                     // then output stays at 0
+        BaseCntr[i]++;                     // increment the baseline counter
         if (BaseCntr[i] >= waveBase[i]) {
           inBase[i] = false;  // if we've gone past the baseline period, then end it
           BaseCntr[i] = 0;    // and reset counter
         }
-      } else if (inIpi[i]) {  // check if in an inter-pulse interval
-        curVal[i] = 0;        // if yes, output is 0
-        ipiCntr[i]++;         // increment
+      } else if (inIpi[i]) {             // check if in an inter-pulse interval
+        curVal[i] = 0;                   // if yes, output is 0
+        ipiCntr[i]++;                    // increment
         if (ipiCntr[i] >= waveIPI[i]) {  // check if we're at the end of the ipi
           inIpi[i] = false;              // we're out of ipi period
           ipiCntr[i] = 0;                // reset counter
         }
       } else {  // if not in baseline or in an ipi, then we are presenting the waveform
         // asign wave value based on wave type
-        stimBegin[i] = true; // mark that this particular stimulus has started
+        stimBegin[i] = true;     // mark that this particular stimulus has started
         if (waveType[i] == 0) {  // whale stim
           if (wavIncrmntr[i] % whaleStep[i] == 0) {
             curVal[i] = map(asymCos[whaleCntr[i]], 0, waveMax, 0, waveAmp[i]);
@@ -525,7 +526,7 @@ void waveWrite() {
         wavIncrmntr[i] = wavIncrmntr[i] + 1;
       }
     }
-    if (wavIncrmntr[i] >= waveDur[i]) {  // if it's the end of one wave
+    if (wavIncrmntr[i] >= waveDur[i]) {    // if it's the end of one wave
       if (repCntr[i] < waveReps[i] - 1) {  // but if it's not the end of the number of wave repititions
         repCntr[i] = repCntr[i] + 1;       // increment rep counter
         whaleCntr[i] = 0;
@@ -547,12 +548,13 @@ void waveWrite() {
   mcp.setChannelValue(MCP4728_CHANNEL_C, curVal[2]);  // send the value to the dac
   mcp.setChannelValue(MCP4728_CHANNEL_D, curVal[3]);  // send the value to the dac
   // check if all stimuli are done
-  for (int i = 0; i < 4; i++) {
-    if (stimOn[i]) {
-      break;
-    }
+  if ((stimOn[0])||(stimOn[1])||(stimOn[2])||(stimOn[3])) {
+    
+  } else {
     stimEnd = true;
+    Serial.println("Here");
   }
+
 }  // end waveWrite
 
 void pollData() {
@@ -565,28 +567,40 @@ void pollData() {
 
 void dataReport() {
   //send out data over serial
-  Serial.print("<");
-  Serial.print(loopCount);
-  Serial.print(",");
-  Serial.print(frameCount);
-  Serial.print(",");
-  Serial.print(State);
-  Serial.print(",");
-  Serial.print(trialOutcome);
-  Serial.print(",");
-  Serial.print(curVal[0]);
-  Serial.print(",");
-  Serial.print(curVal[1]);
-  Serial.print(",");
-  Serial.print(lickVal);
-  Serial.print(",");
-  Serial.print(wheelVal);
-  Serial.print(",");
-  Serial.print(rewardValveVal);
-  Serial.print(",");
-  Serial.print(removeValveVal);
-  Serial.print(">");
-  Serial.println("");
+  // Serial.print(stimOn[0]);
+  // Serial.print(",");
+  // Serial.print(stimOn[1]);
+  // Serial.print(",");
+  // Serial.print(stimOn[2]);
+  // Serial.print(",");
+  // Serial.print(stimOn[3]);
+  // Serial.print(",");
+  // Serial.print(stimEnd);
+  // Serial.println("");
+  if (reportData) {
+    Serial.print("<");
+    Serial.print(loopCount);
+    Serial.print(",");
+    Serial.print(frameCount);
+    Serial.print(",");
+    Serial.print(State);
+    Serial.print(",");
+    Serial.print(trialOutcome);
+    Serial.print(",");
+    Serial.print(curVal[0]);
+    Serial.print(",");
+    Serial.print(curVal[1]);
+    Serial.print(",");
+    Serial.print(lickVal);
+    Serial.print(",");
+    Serial.print(wheelVal);
+    Serial.print(",");
+    Serial.print(rewardValveVal);
+    Serial.print(",");
+    Serial.print(removeValveVal);
+    Serial.print(">");
+    Serial.println("");
+  }
 }
 
 void frameCounter() {
@@ -626,7 +640,7 @@ void parseData() {  // split the data into its parts
   int cntr = 0;
   char *ptr;
   if (newData == true) {
-    volatile char *strtokIndx;  // this is used by strtok() as an index
+    volatile char *strtokIndx;                        // this is used by strtok() as an index
     strtokIndx = strtok((char *)receivedChars, ",");  // get the first part - the string
     msgCode = *strtokIndx;
     if (msgCode == 'W') {  // setting wave parameters
@@ -665,45 +679,45 @@ void parseData() {  // split the data into its parts
       rampStep[chanSelect] = (volatile uint)ceil((float)waveAmp[chanSelect] / waveDur[chanSelect]);
       // this is always computed, but only used if using whale stim
       whaleStep[chanSelect] = (volatile uint)ceil((float)waveDur[chanSelect] / SamplesNum);  // how quickly to step through the asymCosine
-    } else if (msgCode == 'S') {  // setting State
+    } else if (msgCode == 'S') {                                                             // setting State
       ptr = strtok(NULL, ",");
       State = atoi(ptr);
-    } else if (msgCode == 'P'){ // setting parameters
+    } else if (msgCode == 'P') {  // setting parameters
       ptr = strtok(NULL, ",");
       param_id = atoi(ptr);
       ptr = strtok(NULL, ",");
       param_val = atoi(ptr);
-      if (param_id == 1){ // enforce_lick, bool
-        if (param_val == 1){
+      if (param_id == 1) {  // enforce_lick, bool
+        if (param_val == 1) {
           enforceEarlyLick = true;
         } else {
           enforceEarlyLick = false;
         }
-      } else if (param_id == 2){ //max lick, uint
+      } else if (param_id == 2) {  //max lick, uint
         lickMax = param_val;
-      } else if (param_id == 3){ // wait for frame, bool
-        if (param_val == 1){
+      } else if (param_id == 3) {  // wait for frame, bool
+        if (param_val == 1) {
           waitForNextFrame = true;
         } else {
           waitForNextFrame = false;
         }
-      } else if (param_id == 4){ // contingent stim index, uint
+      } else if (param_id == 4) {  // contingent stim index, uint
         contingentStim = param_val;
-      } else if (param_id == 5){ // trigger broadcast length, 
+      } else if (param_id == 5) {  // trigger broadcast length,
         trigLen = (volatile uint)round((param_val / 1000.0) * Fs);
-      } else if (param_id == 6){ // response window length
-        respLen = (volatile uint)round((param_val / 1000.0) * Fs); 
-      } else if (param_id == 7){ // how long to open reward valve
+      } else if (param_id == 6) {  // response window length
+        respLen = (volatile uint)round((param_val / 1000.0) * Fs);
+      } else if (param_id == 7) {  // how long to open reward valve
         valveLen = (volatile uint)round((param_val / 1000.0) * Fs);
-      } else if (param_id == 8){ // how long from reward administration does the animal have to consume the reward
+      } else if (param_id == 8) {  // how long from reward administration does the animal have to consume the reward
         consumeLen = (volatile uint)round((param_val / 1000.0) * Fs);
-      } else if (param_id == 9){ // in pairing trials, time between stim and reward
+      } else if (param_id == 9) {  // in pairing trials, time between stim and reward
         pairDelay = (volatile uint)round((param_val / 1000.0) * Fs);
-      } else if (param_id == 10){ // how long to broadcast trialoutcome
+      } else if (param_id == 10) {  // how long to broadcast trialoutcome
         transmitLen = (volatile uint)round((param_val / 1000.0) * Fs);
-      } else if (param_id == 11){ // how long to open remove reward valve for
+      } else if (param_id == 11) {  // how long to open remove reward valve for
         removeLen = (volatile uint)round((param_val / 1000.0) * Fs);
-      } 
+      }
     }
     newData = false;
   }
