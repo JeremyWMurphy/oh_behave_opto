@@ -487,6 +487,9 @@ void fireTrig() {
 void waveWrite() {
   // waveform generator
   for (int i = 0; i < 4; i++) {            // for each dac channel
+    if (waveDur[i] <= 0 && waveBase[i] <= 0){ //right away check if it has any duration, if not, mark it as over already
+      stimOn[i] = false;
+    }
     if (stimOn[i]) {                       // if there's a stim on
       if (inBase[i] && waveBase[i] > 0) {  // is it in baseline?
         curVal[i] = 0;                     // then output stays at 0
@@ -526,6 +529,7 @@ void waveWrite() {
         wavIncrmntr[i] = wavIncrmntr[i] + 1;
       }
     }
+
     if (wavIncrmntr[i] >= waveDur[i]) {    // if it's the end of one wave
       if (repCntr[i] < waveReps[i] - 1) {  // but if it's not the end of the number of wave repititions
         repCntr[i] = repCntr[i] + 1;       // increment rep counter
