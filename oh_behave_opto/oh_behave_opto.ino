@@ -29,7 +29,7 @@ uint pairDelay = Fs * 0;   // in pairing trials, time between stim and reward
 uint removeLen = Fs * 1;
 uint transmitLen = Fs * 1;
 
-bool reportData = false;
+bool reportData = true;
 
 // channels
 // ins
@@ -485,78 +485,79 @@ void fireTrig() {
 
 //waveform tracker/genrator
 void waveWrite() {
-  // waveform generator
-  for (int i = 0; i < 4; i++) {            // for each dac channel
-    if (waveDur[i] <= 0 && waveBase[i] <= 0){ //right away check if it has any duration, if not, mark it as over already
-      stimOn[i] = false;
-    }
-    if (stimOn[i]) {                       // if there's a stim on
-      if (inBase[i] && waveBase[i] > 0) {  // is it in baseline?
-        curVal[i] = 0;                     // then output stays at 0
-        BaseCntr[i]++;                     // increment the baseline counter
-        if (BaseCntr[i] >= waveBase[i]) {
-          inBase[i] = false;  // if we've gone past the baseline period, then end it
-          BaseCntr[i] = 0;    // and reset counter
-        }
-      } else if (inIpi[i]) {             // check if in an inter-pulse interval
-        curVal[i] = 0;                   // if yes, output is 0
-        ipiCntr[i]++;                    // increment
-        if (ipiCntr[i] >= waveIPI[i]) {  // check if we're at the end of the ipi
-          inIpi[i] = false;              // we're out of ipi period
-          ipiCntr[i] = 0;                // reset counter
-        }
-      } else {  // if not in baseline or in an ipi, then we are presenting the waveform
-        // asign wave value based on wave type
-        stimBegin[i] = true;     // mark that this particular stimulus has started
-        if (waveType[i] == 0) {  // whale stim
-          if (wavIncrmntr[i] % whaleStep[i] == 0) {
-            curVal[i] = map(asymCos[whaleCntr[i]], 0, waveMax, 0, waveAmp[i]);
-            whaleCntr[i]++;
-          }
-        } else if (waveType[i] == 1) {  // square wave
-          curVal[i] = waveAmp[i];
-        } else if (waveType[i] == 2) {  // ramp up
-          curVal[i] = linspace((float)waveDur[i], 0, (float)waveAmp[i], wavIncrmntr[i]);
-        } else if (waveType[i] == 3) {  // ramp down
-          curVal[i] = linspace((float)waveDur[i], (float)waveAmp[i], 0, wavIncrmntr[i]);
-        } else if (waveType[i] == 4) {  // pyramid
-          if (wavIncrmntr[i] < waveDur[i] / 2) {
-            curVal[i] = linspace((float)waveDur[i] / 2, 0, (float)waveAmp[i], wavIncrmntr[i]);
-          } else {
-            curVal[i] = linspace((float)waveDur[i] / 2, (float)waveAmp[i], 0, wavIncrmntr[i] - waveDur[i] / 2);
-          }
-        }
-        wavIncrmntr[i] = wavIncrmntr[i] + 1;
-      }
-    }
-
-    if (wavIncrmntr[i] >= waveDur[i]) {    // if it's the end of one wave
-      if (repCntr[i] < waveReps[i] - 1) {  // but if it's not the end of the number of wave repititions
-        repCntr[i] = repCntr[i] + 1;       // increment rep counter
-        whaleCntr[i] = 0;
-        wavIncrmntr[i] = 0;  // reset wave indexer
-        inIpi[i] = true;     // go into ipi
-        curVal[i] = 0;
-      } else {  // else that's the end of the requested signal, so reset stuff
-        repCntr[i] = 0;
-        whaleCntr[i] = 0;
-        wavIncrmntr[i] = 0;
-        inIpi[i] = false;  // go into ipi
+  if (!stimEnd) {
+    // waveform generator
+    for (int i = 0; i < 4; i++) {  // for each dac channel
+      if (waveDur[i] <= 0) {       //right away check if it has any duration, if not, mark it as over already
         stimOn[i] = false;
-        curVal[i] = 0;
+      }
+      if (stimOn[i]) {                       // if there's a stim on
+        if (inBase[i] && waveBase[i] > 0) {  // is it in baseline?
+          curVal[i] = 0;                     // then output stays at 0
+          BaseCntr[i]++;                     // increment the baseline counter
+          if (BaseCntr[i] >= waveBase[i]) {
+            inBase[i] = false;  // if we've gone past the baseline period, then end it
+            BaseCntr[i] = 0;    // and reset counter
+          }
+        } else if (inIpi[i]) {             // check if in an inter-pulse interval
+          curVal[i] = 0;                   // if yes, output is 0
+          ipiCntr[i]++;                    // increment
+          if (ipiCntr[i] >= waveIPI[i]) {  // check if we're at the end of the ipi
+            inIpi[i] = false;              // we're out of ipi period
+            ipiCntr[i] = 0;                // reset counter
+          }
+        } else {  // if not in baseline or in an ipi, then we are presenting the waveform
+          // asign wave value based on wave type
+          stimBegin[i] = true;     // mark that this particular stimulus has started
+          if (waveType[i] == 0) {  // whale stim
+            if (wavIncrmntr[i] % whaleStep[i] == 0) {
+              curVal[i] = map(asymCos[whaleCntr[i]], 0, waveMax, 0, waveAmp[i]);
+              whaleCntr[i]++;
+            }
+          } else if (waveType[i] == 1) {  // square wave
+            curVal[i] = waveAmp[i];
+          } else if (waveType[i] == 2) {  // ramp up
+            curVal[i] = linspace((float)waveDur[i], 0, (float)waveAmp[i], wavIncrmntr[i]);
+          } else if (waveType[i] == 3) {  // ramp down
+            curVal[i] = linspace((float)waveDur[i], (float)waveAmp[i], 0, wavIncrmntr[i]);
+          } else if (waveType[i] == 4) {  // pyramid
+            if (wavIncrmntr[i] < waveDur[i] / 2) {
+              curVal[i] = linspace((float)waveDur[i] / 2, 0, (float)waveAmp[i], wavIncrmntr[i]);
+            } else {
+              curVal[i] = linspace((float)waveDur[i] / 2, (float)waveAmp[i], 0, wavIncrmntr[i] - waveDur[i] / 2);
+            }
+          }
+          wavIncrmntr[i] = wavIncrmntr[i] + 1;
+        }
+
+        if (wavIncrmntr[i] >= waveDur[i]) {    // if it's the end of one wave
+          if (repCntr[i] < waveReps[i] - 1) {  // but if it's not the end of the number of wave repititions
+            repCntr[i] = repCntr[i] + 1;       // increment rep counter
+            whaleCntr[i] = 0;
+            wavIncrmntr[i] = 0;  // reset wave indexer
+            inIpi[i] = true;     // go into ipi
+            curVal[i] = 0;
+          } else {  // else that's the end of the requested signal, so reset stuff
+            repCntr[i] = 0;
+            whaleCntr[i] = 0;
+            wavIncrmntr[i] = 0;
+            inIpi[i] = false;  // go into ipi
+            stimOn[i] = false;
+            curVal[i] = 0;
+          }
+        }
       }
     }
-  }
-  mcp.setChannelValue(MCP4728_CHANNEL_A, curVal[0]);  // send the value to the dac
-  mcp.setChannelValue(MCP4728_CHANNEL_B, curVal[1]);  // send the value to the dac
-  mcp.setChannelValue(MCP4728_CHANNEL_C, curVal[2]);  // send the value to the dac
-  mcp.setChannelValue(MCP4728_CHANNEL_D, curVal[3]);  // send the value to the dac
-  // check if all stimuli are done
-  if ((stimOn[0])||(stimOn[1])||(stimOn[2])||(stimOn[3])) {
-    
-  } else {
-    stimEnd = true;
-    Serial.println("Here");
+    mcp.setChannelValue(MCP4728_CHANNEL_A, curVal[0]);  // send the value to the dac
+    mcp.setChannelValue(MCP4728_CHANNEL_B, curVal[1]);  // send the value to the dac
+    mcp.setChannelValue(MCP4728_CHANNEL_C, curVal[2]);  // send the value to the dac
+    mcp.setChannelValue(MCP4728_CHANNEL_D, curVal[3]);  // send the value to the dac
+    // check if all stimuli are done
+    if ((stimOn[0]) || (stimOn[1]) || (stimOn[2]) || (stimOn[3])) {
+      // then the entire stimulus is not over yet
+    } else {
+      stimEnd = true;
+    }
   }
 
 }  // end waveWrite
@@ -570,17 +571,6 @@ void pollData() {
 }
 
 void dataReport() {
-  //send out data over serial
-  // Serial.print(stimOn[0]);
-  // Serial.print(",");
-  // Serial.print(stimOn[1]);
-  // Serial.print(",");
-  // Serial.print(stimOn[2]);
-  // Serial.print(",");
-  // Serial.print(stimOn[3]);
-  // Serial.print(",");
-  // Serial.print(stimEnd);
-  // Serial.println("");
   if (reportData) {
     Serial.print("<");
     Serial.print(loopCount);
@@ -723,6 +713,33 @@ void parseData() {  // split the data into its parts
         removeLen = (volatile uint)round((param_val / 1000.0) * Fs);
       }
     }
+
+    // Serial.println("---------");
+    // for (int i = 0; i < 4; i++){
+    //   Serial.print("Channel ");
+    //   Serial.print(i);
+    //   Serial.print(": Wave Type ");
+    //   Serial.print(waveType[i]);
+    //   Serial.print(", ");
+    //   Serial.print(" Wave Duration = ");
+    //   Serial.print(waveDur[i] * 1000.0/Fs);
+    //   Serial.print(" ms, ");
+    //   Serial.print(" wave Ampplitude (12bit) = ");
+    //   Serial.print(waveAmp[i]);
+    //   Serial.print(", ");
+    //   Serial.print(" waveIPI = ");
+    //   Serial.print(waveIPI[i] * 1000.0/Fs);
+    //   Serial.print(" ms, ");
+    //   Serial.print(" waveReps = "); 
+    //   Serial.print(waveReps[i]);
+    //   Serial.print(", ");
+    //   Serial.print(" wave Baseline = ");
+    //   Serial.print(waveBase[i] * 1000.0/Fs);
+    //   Serial.print(" ms");
+    //   Serial.println("");
+    // }
+    // Serial.println("---------");
+
     newData = false;
   }
 }

@@ -43,7 +43,7 @@ config.pulse_reps = '1';
 
 % opto specific parameters
 config.opto_chan = '1';
-config.opto_amp = 3;
+config.opto_amp = 5;
 config.opto_pulse_type = '1'; % on teensy 1 = sqaure wave
 config.opto_len = '50'; % ms
 
