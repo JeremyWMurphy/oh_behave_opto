@@ -24,7 +24,7 @@ config.opto_times = [-200 -75 -50 -25];
 config.limit_repeats = false;
 config.n_repeats = 3; % limit consecutive trials to less than this number
 
-config.n_resets = 8; % how many times to reset iti on early lick
+config.n_resets = 5; % how many times to reset iti on early lick
 
 config.play_error_sound = true; % play gross noise if early lick
 config.error_timeout_len = [10 15]; % on a FA give a timeout this longe, in seconds
@@ -354,13 +354,11 @@ while f.UserData.state ~= 3
                 n_reset_cnts = n_reset_cnts + 1;
                 fprintf(['\n' num2str(n_reset_cnts)])
                 if n_reset_cnts >= config.n_resets
-                     write(s,'<P,1,0>','string');
-                     reset_off = 1;                
+                     % write(s,'<P,1,0>','string');
+                     % reset_off = 1;                
                      if config.play_error_sound
                         sound(error_sound,config.sound_fs); 
-                     end
-                     if config.error_timeout_len > 0                   
-                        pause(round(config.error_timeout_len(1) + ((config.error_timeout_len(2) - config.error_timeout_len(1)) * rand(1)),2));
+                        pause(config.error_timeout_len);
                      end              
                      n_reset_cnts = 0;
                 end

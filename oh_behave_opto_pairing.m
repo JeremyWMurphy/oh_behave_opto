@@ -10,7 +10,7 @@ config.baseln = 5; % length of pause at begining of each run, sec
 config.n_trials = 200; % number of total trials to run -- there are many conditions, so this is a target, but do to rounding (always up, i.e., ceil()), there will be more than this number
 
 %% key parameters
-config.iti_len = [3 5];
+config.iti_len = [2 4];
 config.prcnt_go_p_alone = 1; % percentage of trials that are go trials
 config.prcnt_go_p_opto = 1; % percentage of trials that are go trials
 config.prcnt_opto = 0;
