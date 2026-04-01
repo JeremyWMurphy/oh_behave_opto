@@ -7,24 +7,26 @@ config.teensy_fs = 2000; % teensy sample rate, Hz
 
 % experiment parameters
 config.baseln = 5; % length of pause at begining of each run, sec
-config.n_trials = 200; % number of total trials to run -- there are many conditions, so this is a target, but do to rounding (always up, i.e., ceil()), there will be more than this number
+config.n_trials = 300; % number of total trials to run -- there are many conditions, so this is a target, but do to rounding (always up, i.e., ceil()), there will be more than this number
 
 %% key parameters
-config.iti_len = [3 5];
-config.prcnt_go_p_alone = 0.70; % percentage of trials that are go trials
-config.prcnt_go_p_opto = 1; % percentage of trials that are go trials
+config.iti_len = [3 7];
+config.prcnt_go_p_alone = 0.75; % percentage of trials that are go trials
+config.prcnt_go_p_opto = 0.75; % percentage of trials that are go trials
 config.prcnt_opto = 0;
+
 % piezo
-%config.sig_amps = [0.15 0.3 0.4 0.5 0.6 0.8 1]; % amplitudes of stimuli, Volts
-config.sig_amps = [1]; % amplitudes of stimuli, Volts
-config.prcnt_amps = repmat(1/numel(config.sig_amps),1,numel(config.sig_amps)); % proportion of different amplitudes to present - needs to add to 1
-% opto
+%config.sig_amps = [0.1 0.15 0.2 0.4 0.7 1]; % amplitudes of stimuli, Volts
+config.sig_amps = [0.1 0.4 0.7 1]; % amplitudes of stimuli, Volts
+config.prcnt_amps = [0.15 0.25 0.25 0.35]; ... repmat(1/numel(config.sig_amps),1,numel(config.sig_amps)); % proportion of different amplitudes to present - needs to add to 1
+    % opto
 config.opto_times = [-200 -75 -50 -25];
 
 config.limit_repeats = false;
 config.n_repeats = 3; % limit consecutive trials to less than this number
 
-config.n_resets = 8; % how many times to reset iti on early lick
+config.n_resets = 5; % how many times to reset iti on early lick
+config.just_go_after_reset = false; % just push forward with trial after maxed out early lick resets
 
 config.play_error_sound = true; % play gross noise if early lick
 config.error_timeout_len = [10 15]; % on a FA give a timeout this longe, in seconds
@@ -55,17 +57,17 @@ config.up_every = 5000; % number of bytes to read in at a time
 config.n_sec_disp = 10; % number of seconds to display on the graph
 
 % sound parameters
-config.sound_fs = 10e3;
+config.sound_fs = 44e3;
 % error sound
-config.err_len = 2;
-config.err_amp = 0.2;
-config.err_freq1 = 2000;
-config.err_freq2 = 3500;
+config.err_len = 10;
+config.err_amp = 0.8;
+config.err_freq1 = 1350;
+config.err_freq2 = 50;
 % FA sound
-config.fa_len = 2;
-config.fa_amp = 0.2;
-config.fa_freq1 = 2000;
-config.fa_freq2 = 3500;
+config.fa_len = 10;
+config.fa_amp = 0.8;
+config.fa_freq1 = 1350;
+config.fa_freq2 = 50;
 % hit  sound
 config.hit_amp = 0.5;
 config.hit_len = 0.05;
@@ -74,10 +76,10 @@ config.hit_freq2 = 1000;
 
 % make feedback sounds
 err_t = 1/config.sound_fs:1/config.sound_fs:config.err_len;
-error_sound = config.err_amp*sin(2*pi*config.err_freq1*err_t) + sin(0.33*pi*config.err_freq2*err_t);
+error_sound = config.err_amp*sin(2*pi*config.err_freq1*err_t) .* sin(pi*config.err_freq2*err_t);
 %
 fa_t = 1/config.sound_fs:1/config.sound_fs:config.fa_len;
-fa_sound = config.fa_amp*sin(2*pi*config.fa_freq1*fa_t) + sin(0.5*pi*config.fa_freq2*fa_t);
+fa_sound = config.fa_amp*sin(2*pi*config.fa_freq1*fa_t) .* sin(pi*config.fa_freq2*fa_t);
 %
 hit_t = 1/config.sound_fs:1/config.sound_fs:config.hit_len;
 hit_sound = config.hit_amp.*chirp(hit_t,config.hit_freq1,hit_t(end),config.hit_freq2) .* gausswin(numel(hit_t))';
@@ -87,14 +89,14 @@ config.tp.enforceEarlyLick = 1; % 1/0
 config.tp.lickMax = 1; % uint
 config.tp.waitForNextFrame = 0; % 1/0
 config.tp.contingentStim = 0; % uint 0-3, or number of dac channels, zero index based
-config.tp.trigLen = 200; % length of trigger broadcast/digital high, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec 
-config.tp.respLen = 1200; % length of response window from stim onset double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec 
-config.tp.valveLen = 100;  % how long the valve opens on reward, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec 
-config.tp.consumeLen = 2000; % how much time to give between reward administration and starting the next trial, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec   
-config.tp.pairDelay =  0; % if doing pairing, offset between stim and reward, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec   
-config.tp.outLen =   1000; % length of time to braodcast an outcome of an early response, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec   
-config.tp.removeLen =  1000; % how long to open the valve for the vacuum to suck away reward
- 
+config.tp.trigLen = 200; % length of trigger broadcast/digital high, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
+config.tp.respLen = 1000; % length of response window from stim onset double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
+config.tp.valveLen = 100;  % how long the valve opens on reward, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
+config.tp.consumeLen = 1000; % how much time to give between reward administration and starting the next trial, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
+config.tp.pairDelay =  0; % if doing pairing, offset between stim and reward, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
+config.tp.outLen =   1000; % length of time to braodcast an outcome of an early response, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
+config.tp.removeLen =  2000; % how long to open the valve for the vacuum to suck away reward
+
 %% Make Trial structure
 
 % make opto trials
@@ -106,7 +108,7 @@ for i = 1:numel(config.opto_times)
     for j = 1:numel(config.sig_amps)
         ttype_dict((i*10) + j) = ['o:' num2str(config.opto_times(i)) ',p:' num2str(config.sig_amps(j))];
         n_tmp = ceil(((n_opto_trials*config.prcnt_go_p_opto)*config.prcnt_amps(j))/numel(config.opto_times));
-        trls = [trls; ((i*10) + j) * ones(n_tmp,1)]; 
+        trls = [trls; ((i*10) + j) * ones(n_tmp,1)];
     end
 end
 ttype_dict(100) = 'opto alone';
@@ -195,12 +197,12 @@ while f.UserData.state ~= 3
         data_fid_stream = fopen([save_pth '\data_stream.csv'],'w');
         data_fid_notes = fopen([save_pth '\data_notes.csv'],'w');
         fprintf(data_fid_notes,id);
-        
+
         % print all the parameters that we set above
         print_parameters(data_fid_notes,config);
 
-        %% setup trial parameter distributions       
-       
+        %% setup trial parameter distributions
+
 
         trls = trls(randperm(size(trls,1)));
         if config.limit_repeats
@@ -234,7 +236,7 @@ while f.UserData.state ~= 3
 
         while present % trial loop
 
-            if trl_cntr == 1 && run_type == 1 && ~prior_was_error 
+            if trl_cntr == 1 && run_type == 1 && ~prior_was_error
                 fprintf(data_fid_notes,'\nDetection Task');
                 pause(config.baseln)
             elseif trl_cntr == 1 && run_type == 2 && ~prior_was_error
@@ -243,7 +245,7 @@ while f.UserData.state ~= 3
             end
 
             if prior_was_error
-                prior_was_error = false; 
+                prior_was_error = false;
             end
 
             iti = round(1e3*(config.iti_len(1) + ((config.iti_len(2) - config.iti_len(1)) * rand(1))));
@@ -271,19 +273,19 @@ while f.UserData.state ~= 3
                     piezo_amp = 0;
                     opto_offset = 0;
                 else
-                  piezo_amp = sig_amps_12bit(trial_type);
-                  is_go = true;
-                  o_amp = 0;
-                  opto_offset = 0;
+                    piezo_amp = sig_amps_12bit(trial_type);
+                    is_go = true;
+                    o_amp = 0;
+                    opto_offset = 0;
                 end
             end
 
-            % set correct parameters for trial        
+            % set correct parameters for trial
             % set piezo parameters
-            msg_out = ['<W,' config.piezo_chan ',' config.pulse_type ',' config.pulse_len ',' num2str(piezo_amp) ',' config.pulse_intrvl ',' config.pulse_reps ',' num2str(iti) '>'];           
+            msg_out = ['<W,' config.piezo_chan ',' config.pulse_type ',' config.pulse_len ',' num2str(piezo_amp) ',' config.pulse_intrvl ',' config.pulse_reps ',' num2str(iti) '>'];
             write_serial(s,msg_out);
             % set opto parameters
-            msg_out = ['<W,' config.opto_chan ',' config.opto_pulse_type ',' config.opto_len ',' num2str(o_amp) ',0,1,' num2str(iti+opto_offset) '>'];           
+            msg_out = ['<W,' config.opto_chan ',' config.opto_pulse_type ',' config.opto_len ',' num2str(o_amp) ',0,1,' num2str(iti+opto_offset) '>'];
             write_serial(s,msg_out);
 
             fprintf(data_fid_notes,['\n Trial ' num2str(trl_cntr) ' ' char(datetime('now','Format','HH:mm:ss')) ', ' char(ttype_dict(trial_type))]);
@@ -301,7 +303,7 @@ while f.UserData.state ~= 3
             else
                 error('run type...')
             end
-            
+
             while ~trial_is_done
                 trial_is_done = f.UserData.TeensyDone;
                 % wait for end of trial message from teensy before moving on
@@ -313,7 +315,7 @@ while f.UserData.state ~= 3
             end
 
             trial_outcome = f.UserData.trialOutcome;
-            
+
             if reset_off % in the event we have enforce no licks and num resets is <Inf, we need to turn off enforce licks for this one trial is max licks has been reached
                 write(s,'<P,1,1>','string');
                 reset_off = 0;
@@ -340,11 +342,13 @@ while f.UserData.state ~= 3
             elseif trial_outcome == 4
                 fa_txt.FontColor = [0 1 1];
                 n_resp_types(4) = n_resp_types(4)+1;
-                if config.play_fa_sound
-                    sound(fa_sound,config.sound_fs);
-                end
-                if config.fa_timeout_len>0
-                   pause(round(config.fa_timeout_len(1) + ((config.fa_timeout_len(2) - config.fa_timeout_len(1)) * rand(1)),2));
+                if trial_type < 10 % ie, dont punish fa to opto alone stim, because that seems confusing
+                    if config.play_fa_sound
+                        sound(fa_sound,config.sound_fs);
+                    end
+                    if config.fa_timeout_len > 0
+                        pause(round(config.fa_timeout_len(1) + ((config.fa_timeout_len(2) - config.fa_timeout_len(1)) * rand(1)),2));
+                    end
                 end
                 n_reset_cnts = 0;
             elseif trial_outcome == 5 % early lick
@@ -354,17 +358,19 @@ while f.UserData.state ~= 3
                 n_reset_cnts = n_reset_cnts + 1;
                 fprintf(['\n' num2str(n_reset_cnts)])
                 if n_reset_cnts >= config.n_resets
-                     write(s,'<P,1,0>','string');
-                     reset_off = 1;                
-                     if config.play_error_sound
-                        sound(error_sound,config.sound_fs); 
-                     end
-                     if config.error_timeout_len > 0                   
+                    if config.just_go_after_reset % after maxed out early lick reset, should we just go forward with the trial
+                        write(s,'<P,1,0>','string');
+                        reset_off = 1;
+                    end
+                    if config.play_error_sound % after maxed out early lick reset, should we play sound
+                        sound(error_sound,config.sound_fs);
+                    end
+                    if config.error_timeout_len > 0 % after maxed out early lick reset, should we give a timeout
                         pause(round(config.error_timeout_len(1) + ((config.error_timeout_len(2) - config.error_timeout_len(1)) * rand(1)),2));
-                     end              
-                     n_reset_cnts = 0;
+                    end
+                    n_reset_cnts = 0;
                 end
-                
+
             end
 
             while trial_is_done % now wait until the whole trial (i.e., response, reward delivery, consume period, etc) is done
