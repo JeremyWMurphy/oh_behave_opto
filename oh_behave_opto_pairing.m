@@ -10,7 +10,7 @@ config.baseln = 5; % length of pause at begining of each run, sec
 config.n_trials = 200; % number of total trials to run -- there are many conditions, so this is a target, but do to rounding (always up, i.e., ceil()), there will be more than this number
 
 %% key parameters
-config.iti_len = [4 8];
+config.iti_len = [2 4];
 config.prcnt_go_p_alone = 1; % percentage of trials that are go trials
 config.prcnt_go_p_opto = 1; % percentage of trials that are go trials
 config.prcnt_opto = 0;
@@ -20,7 +20,7 @@ config.prcnt_amps = repmat(1/numel(config.sig_amps),1,numel(config.sig_amps)); %
 % opto
 config.opto_times = [-200 -75 -50 -25];
 
-config.n_resets = 5; % how many times to reset iti on early lick
+config.n_resets = Inf; % how many times to reset iti on early lick
 
 config.play_error_sound = false; % play gross noise if early lick
 config.error_timeout_len = 10; % on a FA give a timeout this longe, in seconds
@@ -80,7 +80,7 @@ hit_sound = config.hit_amp.*chirp(hit_t,config.hit_freq1,hit_t(end),config.hit_f
 
 % Teensy parameters, *time should be in ms
 config.tp.enforceEarlyLick = 1; % 1/0
-config.tp.lickMax = 3; % uint
+config.tp.lickMax = 5; % uint
 config.tp.waitForNextFrame = 0; % 1/0
 config.tp.contingentStim = 0; % uint 0-3, or number of dac channels, zero index based
 config.tp.trigLen = 200; % length of trigger broadcast/digital high, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec 
