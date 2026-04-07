@@ -17,8 +17,8 @@ config.prcnt_opto = 0;
 
 % piezo
 %config.sig_amps = [0.1 0.15 0.2 0.4 0.7 1]; % amplitudes of stimuli, Volts
-config.sig_amps = [0.1 0.4 0.7 1]; % amplitudes of stimuli, Volts
-config.prcnt_amps = [0.15 0.25 0.25 0.35]; ... repmat(1/numel(config.sig_amps),1,numel(config.sig_amps)); % proportion of different amplitudes to present - needs to add to 1
+config.sig_amps = [2]; % amplitudes of stimuli, Volts
+config.prcnt_amps = [1]; ... repmat(1/numel(config.sig_amps),1,numel(config.sig_amps)); % proportion of different amplitudes to present - needs to add to 1
     % opto
 config.opto_times = [-200 -75 -50 -25];
 
@@ -52,7 +52,7 @@ config.opto_pulse_type = '1'; % on teensy 1 = sqaure wave
 config.opto_len = '50'; % ms
 
 % Teensy parameters
-config.serial_port = 'COM3';
+config.serial_port = 'COM6';
 config.up_every = 5000; % number of bytes to read in at a time
 config.n_sec_disp = 10; % number of seconds to display on the graph
 

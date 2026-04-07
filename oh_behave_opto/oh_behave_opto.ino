@@ -34,21 +34,22 @@ bool reportData = true;
 // channels
 // ins
 const uint wheelChan = 14;  // analog in
-const uint frameChan = 23;  // frame counter channel, interrupt
-const uint lickChan = 22;   //lick channel
+const uint frameChan = 22;  // frame counter channel, interrupt
+const uint lickChan = 13;   //lick channel
 // outs
 const uint trigChan1 = 0;  // trigger channel;
+
 const uint trigChan2 = 1;  // trigger channel;
 const uint trigChan3 = 2;  // trigger channel;
 const uint trigChan4 = 3;  // trigger channel;
 
 const uint valveChan1 = 4;  // reward valve
-const uint valveChan2 = 6;  // vac line valve for reward removal
+const uint valveChan2 = 5;  // vac line valve for reward removal
+volatile bool valveChan1State = false;  // reward valve
+volatile bool  valveChan2State = false;  // vac line valve for reward removal
 
 volatile uint16_t wheelVal = 0;
 volatile int lickVal = 0;
-volatile int rewardValveVal = 0;
-volatile int removeValveVal = 0;
 
 // state definitions
 const uint IDLE = 0;
@@ -190,6 +191,8 @@ void setup() {
   pinMode(trigChan4, OUTPUT);
   digitalWrite(trigChan4, LOW);
 
+  pinMode(lickChan, INPUT_PULLDOWN);
+
   // start main interrupt timer program at specified sample rate
   t1.begin(ohBehave, 1E6 / Fs);
 }
@@ -228,10 +231,10 @@ void ohBehave() {
     fireTrig();
 
   } else if (State == VALVEO) {  // open valve1, this is helpful for clearing lines and stuff
-    digitalWrite(valveChan1, HIGH);
+    open_valve1();
 
   } else if (State == VALVEC) {  // close valve1
-    digitalWrite(valveChan1, LOW);
+    close_valve1();
 
   } else if (State == REWARD) {  // trigger a typical reward
     justReward();
@@ -383,9 +386,9 @@ void justReward() {
     dispStart = false;
   }
   if (loopCount - dispT < valveLen) {
-    digitalWrite(valveChan1, HIGH);
+    open_valve1();
   } else {
-    digitalWrite(valveChan1, LOW);
+    close_valve1();
     if (consumeStart) {
       consumeT = loopCount;
       consumeStart = false;
@@ -404,9 +407,10 @@ void removeReward() {
   if (removeStart) {
     removeT = loopCount;
     removeStart = false;
-    digitalWrite(valveChan2, HIGH);
+    open_valve2();
   } else if (loopCount - removeT > removeLen) {
     State = TRIALEND;
+    close_valve2();
   }
 }
 
@@ -430,9 +434,9 @@ void endOfTrialCleanUp() {
       inIpi[i] = false;
       ipiCntr[i] = 0;
       curVal[i] = 0;
-    }
-    digitalWrite(valveChan1, LOW);
-    digitalWrite(valveChan2, LOW);
+    }    
+    close_valve1();
+    close_valve2();    
     digitalWrite(trigChan1, LOW);
     digitalWrite(trigChan2, LOW);
     digitalWrite(trigChan3, LOW);
@@ -566,8 +570,6 @@ void pollData() {
   // get data in values
   wheelVal = analogRead(wheelChan);
   lickVal = digitalRead(lickChan);
-  rewardValveVal = digitalRead(valveChan1);
-  removeValveVal = digitalRead(valveChan2);
 }
 
 void dataReport() {
@@ -589,9 +591,9 @@ void dataReport() {
     Serial.print(",");
     Serial.print(wheelVal);
     Serial.print(",");
-    Serial.print(rewardValveVal);
+    Serial.print(valveChan1State);
     Serial.print(",");
-    Serial.print(removeValveVal);
+    Serial.print(valveChan2State);
     Serial.print(">");
     Serial.println("");
   }
@@ -742,6 +744,23 @@ void parseData() {  // split the data into its parts
 
     newData = false;
   }
+}
+
+void open_valve1(){
+  digitalWrite(valveChan1,HIGH);
+  valveChan1State = true;
+}
+void open_valve2(){
+  digitalWrite(valveChan2,HIGH);
+  valveChan2State = true;
+}
+void close_valve1(){
+  digitalWrite(valveChan1,LOW);
+  valveChan1State = false;
+}
+void close_valve2(){
+  digitalWrite(valveChan2,LOW);
+  valveChan2State = false;
 }
 
 int linspace(float const n, float const d1, float const d2, int const i) {
