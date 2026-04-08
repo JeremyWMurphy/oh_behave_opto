@@ -11,23 +11,25 @@ config.n_trials = 300; % number of total trials to run -- there are many conditi
 
 %% key parameters
 
-config.iti_len = [3 7];
-%config.iti_len = [3 5];
+config.iti_len = [3 5];
 config.prcnt_go_p_alone = 0.75; % percentage of trials that are go trials
 config.prcnt_go_p_opto = 0.75; % percentage of trials that are go trials
 config.prcnt_opto = 0;
 
 % piezo
-config.sig_amps = [0.1 0.2 0.3 0.4 0.7 1]; % amplitudes of stimuli, Volts
-config.prcnt_amps = [0.15 0.15 0.15 0.15 0.2 0.2]; ... repmat(1/numel(config.sig_amps),1,numel(config.sig_amps)); % proportion of different amplitudes to present - needs to add to 1
-%config.sig_amps = [1]; % amplitudes of stimuli, Volts
-%config.prcnt_amps = [1];
-max_stim = 1;
+%config.sig_amps = [0.1 0.2 0.3 0.4 0.7 1]; % amplitudes of stimuli, Volts
+%config.prcnt_amps = [0.15 0.15 0.15 0.15 0.2 0.2]; ... repmat(1/numel(config.sig_amps),1,numel(config.sig_amps)); % proportion of different amplitudes to present - needs to add to 1
+
+config.sig_amps = [1]; % amplitudes of stimuli, Volts
+config.prcnt_amps = [1];
+
+start_stim_id = numel(config.sig_amps); % if we want to start with n_start_gomax trials of this id, for starting run with high amplitude go trials
+n_start_gomax = 5; 
 
 % opto
 config.opto_times = [-200 -75 -50 -25];
 
-config.limit_repeats = true;
+config.limit_repeats = false; % this finds a trial permutation that limits repeating of the same trial type, the program will hang if you have this set to true and there are few conditions
 config.n_repeats = 3; % limit consecutive trials to less than this number
 
 config.n_resets = 10; % how many times to reset iti on early lick
@@ -36,12 +38,12 @@ config.n_resets = 10; % how many times to reset iti on early lick
 config.just_go_after_reset = false; % just push forward with trial after maxed out early lick resets
 
 config.play_error_sound = true; % play gross noise if early lick
-config.error_timeout_len = [10 15]; % on a FA give a timeout this longe, in seconds
+config.error_timeout_len = [10 10]; % on a FA give a timeout this longe, in seconds
 
 config.play_hit_sound = false; % play chirp on hit
 
 config.play_fa_sound = true; % play long gross noise if early lick
-config.fa_timeout_len = [10 15]; % on a FA give a timeout this longe, in seconds
+config.fa_timeout_len = [10 10]; % on a FA give a timeout this longe, in seconds
 
 %% other parameters, more fixed
 
@@ -61,7 +63,7 @@ config.opto_pulse_type = '1'; % on teensy 1 = sqaure wave
 config.opto_len = '50'; % ms
 
 % Teensy parameters
-config.serial_port = 'COM6';
+config.serial_port = 'COM3';
 config.up_every = 5000; % number of bytes to read in at a time
 config.n_sec_disp = 10; % number of seconds to display on the graph
 
@@ -95,11 +97,11 @@ hit_sound = config.hit_amp.*chirp(hit_t,config.hit_freq1,hit_t(end),config.hit_f
 
 % Teensy parameters, *time should be in ms
 config.tp.enforceEarlyLick = 1; % 1/0
-config.tp.lickMax = 1; % uint
+config.tp.lickMax = 5; % uint
 config.tp.waitForNextFrame = 0; % 1/0
 config.tp.contingentStim = 0; % uint 0-3, or number of dac channels, zero index based
 config.tp.trigLen = 200; % length of trigger broadcast/digital high, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
-config.tp.respLen = 1500; % length of response window from stim onset double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
+config.tp.respLen = 700; % length of response window from stim onset double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
 config.tp.valveLen = 100;  % how long the valve opens on reward, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
 config.tp.consumeLen = 1500; % how much time to give between reward administration and starting the next trial, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
 config.tp.pairDelay =  0; % if doing pairing, offset between stim and reward, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
@@ -220,6 +222,10 @@ while f.UserData.state ~= 3
                 trls = trls(randperm(size(trls,1)));
                 [n_rep_ixs] = find_repeats(trls,config.n_repeats);
             end
+        end
+
+        if n_start_gomax > 0
+            trls = cat(1,start_stim_id.*ones(n_start_gomax,1),trls);
         end
 
         s.flush;

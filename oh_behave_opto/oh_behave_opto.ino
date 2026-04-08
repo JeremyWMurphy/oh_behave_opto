@@ -34,8 +34,8 @@ bool reportData = true;
 // channels
 // ins
 const uint wheelChan = 14;  // analog in
-const uint frameChan = 22;  // frame counter channel, interrupt
-const uint lickChan = 13;   //lick channel
+const uint frameChan = 23;  // frame counter channel, interrupt
+const uint lickChan = 22;   //lick channel
 // outs
 const uint trigChan1 = 0;  // trigger channel;
 
@@ -44,7 +44,7 @@ const uint trigChan3 = 2;  // trigger channel;
 const uint trigChan4 = 3;  // trigger channel;
 
 const uint valveChan1 = 4;  // reward valve
-const uint valveChan2 = 5;  // vac line valve for reward removal
+const uint valveChan2 =6;  // vac line valve for reward removal
 volatile bool valveChan1State = false;  // reward valve
 volatile bool  valveChan2State = false;  // vac line valve for reward removal
 
