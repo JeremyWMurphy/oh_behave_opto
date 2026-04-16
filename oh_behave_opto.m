@@ -7,7 +7,7 @@ config.teensy_fs = 2000; % teensy sample rate, Hz
 
 % experiment parameters
 config.baseln = 5; % length of pause at begining of each run, sec
-config.n_trials = 300; % number of total trials to run -- there are many conditions, so this is a target, but do to rounding (always up, i.e., ceil()), there will be more than this number
+config.n_trials = 200; % number of total trials to run -- there are many conditions, so this is a target, but do to rounding (always up, i.e., ceil()), there will be more than this number
 
 %% key parameters
 
@@ -17,14 +17,14 @@ config.prcnt_go_p_opto = 0.75; % percentage of trials that are go trials
 config.prcnt_opto = 0;
 
 % piezo
-%config.sig_amps = [0.1 0.2 0.3 0.4 0.7 1]; % amplitudes of stimuli, Volts
-%config.prcnt_amps = [0.15 0.15 0.15 0.15 0.2 0.2]; ... repmat(1/numel(config.sig_amps),1,numel(config.sig_amps)); % proportion of different amplitudes to present - needs to add to 1
+config.sig_amps = [0.3 0.4 0.6 1]; % amplitudes of stimuli, Volts
+config.prcnt_amps = [0.25 0.25 0.25 0.25]; ... repmat(1/numel(config.sig_amps),1,numel(config.sig_amps)); % proportion of different amplitudes to present - needs to add to 1
 
-config.sig_amps = [1]; % amplitudes of stimuli, Volts
-config.prcnt_amps = [1];
+%config.sig_amps = 0.9; % amplitudes of stimuli, Volts
+%config.prcnt_amps = 1;
 
 start_stim_id = numel(config.sig_amps); % if we want to start with n_start_gomax trials of this id, for starting run with high amplitude go trials
-n_start_gomax = 5; 
+n_start_gomax = 10; 
 
 % opto
 config.opto_times = [-200 -75 -50 -25];
@@ -32,18 +32,17 @@ config.opto_times = [-200 -75 -50 -25];
 config.limit_repeats = false; % this finds a trial permutation that limits repeating of the same trial type, the program will hang if you have this set to true and there are few conditions
 config.n_repeats = 3; % limit consecutive trials to less than this number
 
-config.n_resets = 10; % how many times to reset iti on early lick
-%config.n_resets = Inf; % how many times to reset iti on early lick
+config.n_resets = 15; % how many times to reset iti on early lick
 
-config.just_go_after_reset = false; % just push forward with trial after maxed out early lick resets
+config.just_go_after_reset = true; % just push forward with trial after maxed out early lick resets
 
 config.play_error_sound = true; % play gross noise if early lick
-config.error_timeout_len = [10 10]; % on a FA give a timeout this longe, in seconds
+config.error_timeout_len = [2 2]; % on a FA give a timeout this longe, in seconds
 
 config.play_hit_sound = false; % play chirp on hit
 
 config.play_fa_sound = true; % play long gross noise if early lick
-config.fa_timeout_len = [10 10]; % on a FA give a timeout this longe, in seconds
+config.fa_timeout_len = [2 2]; % on a FA give a timeout this longe, in seconds
 
 %% other parameters, more fixed
 
@@ -70,12 +69,12 @@ config.n_sec_disp = 10; % number of seconds to display on the graph
 % sound parameters
 config.sound_fs = 44e3;
 % error sound
-config.err_len = 10;
+config.err_len = min(config.error_timeout_len);
 config.err_amp = 0.8;
 config.err_freq1 = 1350;
 config.err_freq2 = 50;
 % FA sound
-config.fa_len = 10;
+config.fa_len = min(config.fa_timeout_len);
 config.fa_amp = 0.8;
 config.fa_freq1 = 1350;
 config.fa_freq2 = 50;
@@ -97,14 +96,14 @@ hit_sound = config.hit_amp.*chirp(hit_t,config.hit_freq1,hit_t(end),config.hit_f
 
 % Teensy parameters, *time should be in ms
 config.tp.enforceEarlyLick = 1; % 1/0
-config.tp.lickMax = 5; % uint
+config.tp.lickMax = 1; % uint
 config.tp.waitForNextFrame = 0; % 1/0
 config.tp.contingentStim = 0; % uint 0-3, or number of dac channels, zero index based
 config.tp.trigLen = 200; % length of trigger broadcast/digital high, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
 config.tp.respLen = 700; % length of response window from stim onset double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
-config.tp.valveLen = 100;  % how long the valve opens on reward, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
-config.tp.consumeLen = 1500; % how much time to give between reward administration and starting the next trial, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
-config.tp.pairDelay =  0; % if doing pairing, offset between stim and reward, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
+config.tp.valveLen = 500;  % how long the valve opens on reward, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
+config.tp.consumeLen = 1000; % how much time to give between reward administration and starting the next trial, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
+config.tp.pairDelay =  700; % if doing pairing, offset between stim and reward, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
 config.tp.outLen =   1000; % length of time to braodcast an outcome of an early response, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
 config.tp.removeLen =  1000; % how long to open the valve for the vacuum to suck away reward
 
