@@ -1,13 +1,20 @@
-from picamera2 import Picamera2, Preview
+from picamera2 import Picamera2, Preview, MappedArray
+import cv2
 from picamera2.encoders import H264Encoder, Quality
 import RPi.GPIO as GPIO
 import tkinter as tk
 import libcamera as libcamera
 import datetime
-from time import sleep
+import time
 import os.path
 import io
 import numpy as np
+
+colour = (0, 255, 0)
+origin = (0, 30)
+font = cv2.FONT_HERSHEY_SIMPLEX
+scale = 1
+thickness = 2
 
 cam = Picamera2()
 
@@ -35,11 +42,12 @@ def startRecord():
     start_btn.configure(bg="gainsboro")
     cStr=datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
     filename = '/home/pi/Desktop/Captures/video_'+cStr+'.h264'
-    #waitForPin=1
-    #while waitForPin:
-    #    checkPin=GPIO.input(12)
-    #    if checkPin==1:
-    #        waitForPin=0
+    waitForPin=1
+    while waitForPin:
+        checkPin=GPIO.input(12)
+        if checkPin==1:
+            waitForPin=0
+    cam.pre_callback = apply_timestamp
     cam.start_recording(encoder, '/home/pi/Desktop/Captures/video_'+cStr+'.h264',quality=Quality.MEDIUM)
             
 def stopRecord():
@@ -55,6 +63,12 @@ def takePicture():
     else:
         cam.capture_file('/home/pi/Desktop/Captures/image_'+cStr+'.jpg') 
         i+=1
+
+def apply_timestamp(request):
+    timestamp = time.strftime("%Y-%m-%d %X")
+    with MappedArray(request, "main") as m:
+        cv2.putText(m.array, timestamp, origin, font, scale, colour, thickness)
+
 
 # simple button GUI
 window = tk.Tk()
