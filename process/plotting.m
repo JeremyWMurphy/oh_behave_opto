@@ -5,17 +5,18 @@ C = load('D:\data\Cue_S2_POm\behavior\gpr26_160\all_behavior.mat');
 %%
 ft = fittype('logistic');
 
-include_amps = [0 0.2 0.6 0.8 0.9 1.1 2];
-include_opto_ts = [0 100];
+include_amps = [0 0.2 0.3 0.4 0.6 1.0];
+include_opto_ts = [25 50 75 200];
 
 figure, hold on
 amp_ixs = logical(sum(A.p_amps==include_amps,2));
 mdl_fit{1} = fit(A.beh_summ{1}(amp_ixs,1),A.beh_summ{1}(amp_ixs,2),ft);
-eval_x = 0:0.01:2;
+eval_x = 0:0.01:1;
 fit_points = mdl_fit{1}(eval_x);
-plot(eval_x,fit_points,'k')
-plot(A.beh_summ{1}(amp_ixs,1),A.beh_summ{1}(amp_ixs,2),'ok')
+plot(eval_x,fit_points,'w')
+plot(A.beh_summ{1}(amp_ixs,1),A.beh_summ{1}(amp_ixs,2),'ow')
 
+%%
 amp_ixs = logical(sum(B.p_amps==include_amps,2));
 mdl_fit{1} = fit(B.beh_summ{1}(amp_ixs,1),B.beh_summ{1}(amp_ixs,2),ft);
 eval_x = 0:0.01:2;
@@ -38,12 +39,12 @@ ylim([0 1])
 
 %%
 
-W = {A,B,C};
-ids = {'162','157','160'};
+W = {A};
+ids = {'162'};
 
 clrs = {'r','b'};
 
-include_opto_ts = [-20 50];
+include_opto_ts = [0 25 50 75 200];
 
 for i = 1:numel(W)
 

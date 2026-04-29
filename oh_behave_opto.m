@@ -99,13 +99,13 @@ config.tp.enforceEarlyLick = 1; % 1/0
 config.tp.lickMax = 1; % uint
 config.tp.waitForNextFrame = 0; % 1/0
 config.tp.contingentStim = 0; % uint 0-3, or number of dac channels, zero index based
-config.tp.trigLen = 200; % length of trigger broadcast/digital high, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
-config.tp.respLen = 1500; % length of response window from stim onset double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
-config.tp.valveLen = 50;  % how long the valve opens on reward, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
-config.tp.consumeLen = 1500; % how much time to give between reward administration and starting the next trial, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
-config.tp.pairDelay =  700; % if doing pairing, offset between stim and reward, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
-config.tp.outLen =   1000; % length of time to braodcast an outcome of an early response, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
-config.tp.removeLen =  2000; % how long to open the valve for the vacuum to suck away reward
+config.tp.trigLen = 200; % length of trigger broadcast/digital high, double, in ms
+config.tp.respLen = 1500; % length of response window from stim onset double, in ms
+config.tp.valveLen = 50;  % how long the valve opens on reward, double, in ms
+config.tp.consumeLen = 1500; % how much time to give between reward administration and starting the next trial, double, in ms
+config.tp.pairDelay =  700; % if doing pairing, offset between stim and reward, double, in ms
+config.tp.outLen =   1000; % length of time to braodcast an outcome of an early response, double, in ms
+config.tp.removeLen =  2000; % how long to open the valve for the vacuum to suck away reward, in ms
 
 %% Make Trial structure
 
@@ -235,6 +235,7 @@ while f.UserData.state ~= 3
 
         % send triggers
         write_serial(s,teensy_trigger);
+        pause(config.tp.trigLen/1000);
 
         fprintf(data_fid_notes,['\nRun Began at ' char(datetime('now','Format','HH:mm:ss'))]);
 
@@ -244,23 +245,18 @@ while f.UserData.state ~= 3
         axc.XTick = [0 config.sig_amps];
         axc.XLim = [0 config.sig_amps(end)];
 
-        prior_was_error = false;
         n_reset_cnts = 0;
         reset_off = 0;
 
+        if run_type == 1
+            fprintf(data_fid_notes,'\nDetection Task');
+            pause(config.baseln)
+        elseif run_type == 2
+            fprintf(data_fid_notes,'\nPairing Task');
+            pause(config.baseln)
+        end
+
         while present % trial loop
-
-            if trl_cntr == 1 && run_type == 1 && ~prior_was_error
-                fprintf(data_fid_notes,'\nDetection Task');
-                pause(config.baseln)
-            elseif trl_cntr == 1 && run_type == 2 && ~prior_was_error
-                fprintf(data_fid_notes,'\nPairing Task');
-                pause(config.baseln)
-            end
-
-            if prior_was_error
-                prior_was_error = false;
-            end
 
             iti = round(1e3*(config.iti_len(1) + ((config.iti_len(2) - config.iti_len(1)) * rand(1))));
 
@@ -368,7 +364,6 @@ while f.UserData.state ~= 3
             elseif trial_outcome == 5 % early lick
                 el_txt.FontColor = [0 1 1];
                 trl_cntr = trl_cntr - 1; % redo last trial
-                prior_was_error = true;
                 n_reset_cnts = n_reset_cnts + 1;
                 fprintf(['\n' num2str(n_reset_cnts)])
                 if n_reset_cnts >= config.n_resets
