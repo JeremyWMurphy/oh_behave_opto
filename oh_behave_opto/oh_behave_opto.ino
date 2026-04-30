@@ -36,20 +36,19 @@ bool reportData = true;
 const uint wheelChan = 14;  // analog in
 const uint frameChan = 23;  // frame counter channel, interrupt
 const uint lickChan = 22;   //lick channel
-// outs
-const uint trigChan1 = 0;  // trigger channel;
-
-const uint trigChan2 = 1;  // trigger channel;
-const uint trigChan3 = 2;  // trigger channel;
-const uint trigChan4 = 3;  // trigger channel;
-
-const uint valveChan1 = 4;  // reward valve
-const uint valveChan2 =6;  // vac line valve for reward removal
-volatile bool valveChan1State = false;  // reward valve
-volatile bool  valveChan2State = false;  // vac line valve for reward removal
-
 volatile uint16_t wheelVal = 0;
 volatile int lickVal = 0;
+// outs
+const uint trigChan1 = 0;               // trigger channel;
+const uint trigChan2 = 1;               // trigger channel;
+const uint trigChan3 = 2;               // trigger channel;
+const uint trigChan4 = 3;               // trigger channel;
+const uint valveChan1 = 4;              // reward valve
+const uint valveChan2 = 6;              // vac line valve for reward removal
+volatile bool valveChan1State = false;  // reward valve
+volatile bool valveChan2State = false;  // vac line valve for reward removal
+const uint barcodePin = 7;
+const uint randomPin = 15;
 
 // state definitions
 const uint IDLE = 0;
@@ -145,31 +144,29 @@ volatile uint32_t lastFrame = 0;      // for triggering frames of a camera
 volatile bool frameWaitStart = true;  // for waiting for next frame to begin trial
 
 // barcode
-volatile uint32_t barcode;
+volatile uint32_t barcode = 254;
 
-const uint barcodeInterval = Fs * 5;
-const uint randomPin = 15;
-const uint barcodePin = 7;
+const uint barcodeInterval = Fs * 5;     // send a barcode every n secs
+const uint barcodeTime = Fs * 0.03;      // time of each ttl bit
+const uint barcodeInitTime = Fs * 0.01;  // sending lo/hi/lo to mark begin and end of barcode
+const uint closecodeTime = Fs * 0.01;    // sending lo/hi/lo to mark begin and end of barcode
+
 const uint32_t barcodeMax = 4294967295;
 const uint32_t barcodeBits = 32;
 
-const uint barcodeTime = Fs * 0.03;
-const uint barcodeInitTime = Fs * 0.01;
-
-const uint numInit = 3;
-
 volatile uint barcodeDigit;
 volatile uint bitIdx = 0;
-volatile uint initCnt = 0;
-
 volatile bool barcodeIntrvlStart = true;
 volatile bool barcodeStart = true;
+volatile bool closecodeStart = true;
 volatile bool barcodeOn = false;
 volatile bool initcodeOn = false;
-volatile bool initState = false;
+volatile bool closecodeOn = false;
+
 volatile uint32_t barcodeT = 0;
 volatile uint32_t barcodeEndT = 0;
 volatile uint32_t initT = 0;
+volatile uint32_t closecodeT = 0;
 
 // objs
 Adafruit_MCP4728 mcp;
@@ -220,13 +217,8 @@ void setup() {
 
   pinMode(lickChan, INPUT_PULLDOWN);
 
-  pinMode(barcodePin, OUTPUT); // initialize digital pin
-
-  randomSeed(analogRead(randomPin)); // sets up random() function to be, like, totally random, dude (it reads an analog pin connected to nothing and creates a
-  // computer-ized 'random' number based on that
-
-  barcode = random(0, (pow(2, barcodeMax))); // generates a random number between 0 and 2^32 (4294967296)
-  // (example: if barcode = 4, in binary that would be 0000000000000100)
+  pinMode(barcodePin, OUTPUT);  // initialize digital pin
+  digitalWrite(barcodePin, LOW);
 
   // start main interrupt timer program at specified sample rate
   t1.begin(ohBehave, 1E6 / Fs);
@@ -242,6 +234,7 @@ void ohBehave() {
   dataReport();
   recvSerial();
   parseData();
+  genBarcode();
   loopCount++;
 
   // State dependent
@@ -251,6 +244,7 @@ void ohBehave() {
     // reset these variable at the beginning of a run
     loopCount = 0;
     frameCount = 0;
+    barcode = 254;
     State = IDLE;
 
   } else if (State == GO) {  // GO trial
@@ -469,9 +463,9 @@ void endOfTrialCleanUp() {
       inIpi[i] = false;
       ipiCntr[i] = 0;
       curVal[i] = 0;
-    }    
+    }
     close_valve1();
-    close_valve2();    
+    close_valve2();
     digitalWrite(trigChan1, LOW);
     digitalWrite(trigChan2, LOW);
     digitalWrite(trigChan3, LOW);
@@ -630,7 +624,7 @@ void dataReport() {
     Serial.print(",");
     Serial.print(valveChan2State);
     Serial.print(",");
-    Serial.print(barcodeOn);
+    Serial.print(barcodeDigit);
     Serial.print(">");
     Serial.println("");
   }
@@ -756,7 +750,7 @@ void parseData() {  // split the data into its parts
     // Serial.println("---------");
     // for (int i = 0; i < 4; i++){
     //   Serial.print("Channel ");
-    //   Serial.print(i);
+    //   Serial.print(i);c:\Users\ephys\Desktop\NA_2026-04-30_T11-25-16
     //   Serial.print(": Wave Type ");
     //   Serial.print(waveType[i]);
     //   Serial.print(", ");
@@ -769,7 +763,7 @@ void parseData() {  // split the data into its parts
     //   Serial.print(" waveIPI = ");
     //   Serial.print(waveIPI[i] * 1000.0/Fs);
     //   Serial.print(" ms, ");
-    //   Serial.print(" waveReps = "); 
+    //   Serial.print(" waveReps = ");
     //   Serial.print(waveReps[i]);
     //   Serial.print(", ");
     //   Serial.print(" wave Baseline = ");
@@ -783,84 +777,51 @@ void parseData() {  // split the data into its parts
   }
 }
 
-void genBarcode(){
+void genBarcode() {
 
-  if (!barcodeOn && loopCount-barcodeEndT>barcodeInterval){
-    barcodeStart = true;
-  }
+  if (loopCount - barcodeEndT > barcodeInterval) {
 
-  if (barcodeStart){
-    barcodeStart = false;
-    bitIdx = 0;
-    barcode++;
-    initcodeOn = true;
-    initT = loopCount;
-    initState = false;
-    initCnt = 0;
-  }
-
-  if (initcodeOn){
-
-    if (loopCount-initT > barcodeInitTime){
-      initCnt++;
-      initT = loopCount;
-      initState = !initState;
-    }
-
-    if (initCnt > numInit){
-      barcodeOn = true;
-      initcodeOn = false;
-    } else {
-      digitalWrite(barcodePin, initState);   // else set it to low
-    }
-  }
-
-  if (barcodeOn){
-
-    if (barcodeIntrvlStart){
-      barcodeT = loopCount;
-      barcodeIntrvlStart = false;
-      barcodeDigit = bitRead(barcode >> bitIdx, 0);
-    }
-
-    if (loopCount-barcodeT  <= barcodeTime){
-      if (barcodeDigit == 1){
-        digitalWrite(barcodePin, HIGH);   // else set it to low
-      } else {
-        digitalWrite(barcodePin, LOW);   // else set it to low
+    if (barcodeStart) {
+      barcodeStart = false;
+      bitIdx = 0;
+      barcode++;
+      if (barcode > barcodeMax) {  // if we've gone past 32 bits, wrap back around
+        barcode = 254;
       }
-    } else { // end of that bit, move onto the next one or end
-      
-      barcodeIntrvlStart = true;
-      
-      if (bitIdx < barcodeBits){
+      barcodeOn = true;
+      barcodeT = loopCount;
+    } else if (barcodeOn) {
+      if (loopCount - barcodeT >= barcodeTime) {
         bitIdx++;
- 
-      } else {
+        barcodeDigit = bitRead(barcode, bitIdx);
+        digitalWrite(barcodePin, barcodeDigit);
+        barcodeT = loopCount;
+      }
+      if (bitIdx >= barcodeBits){
+        barcodeStart = true;
         barcodeOn = false;
         barcodeEndT = loopCount;
+        digitalWrite(barcodePin,LOW);
       }
-
     }
-
   }
 
 }
 
-void open_valve1(){
-  digitalWrite(valveChan1,HIGH);
+void open_valve1() {
+  digitalWrite(valveChan1, HIGH);
   valveChan1State = true;
 }
-void open_valve2(){
-  digitalWrite(valveChan2,HIGH);
+void open_valve2() {
+  digitalWrite(valveChan2, HIGH);
   valveChan2State = true;
 }
-void close_valve1(){
-  digitalWrite(valveChan1,LOW);
+void close_valve1() {
+  digitalWrite(valveChan1, LOW);
   valveChan1State = false;
 }
-void close_valve2(){
-  digitalWrite(valveChan2,LOW);
+void close_valve2() {
+  digitalWrite(valveChan2, LOW);
   valveChan2State = false;
 }
 

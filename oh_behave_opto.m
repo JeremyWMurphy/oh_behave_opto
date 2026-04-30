@@ -405,7 +405,8 @@ while f.UserData.state ~= 3
                     fprintf('\nAbort...')
                     present = 0;
                     configureCallback(s,'off');
-                    kill_run(s,data_fid_stream,data_fid_notes,notes);
+                    fprintf(data_fid_notes,['\nRun aborted at ' char(datetime('now','Format','HH:mm:ss')) '\n']);
+                    kill_run(s,notes,data_fid_notes);
                 elseif trl_cntr > config.n_trials % end of run
                     ax.Title.String = 'Task Complete';
                     pause(3)
@@ -414,7 +415,8 @@ while f.UserData.state ~= 3
                     present = 0;
                     configureCallback(s,'off');
                     f.UserData.state = 2;
-                    kill_run(s,data_fid_stream,data_fid_notes,notes);
+                    fprintf(data_fid_notes,['\nRun completed at ' char(datetime('now','Format','HH:mm:ss')) '\n']);
+                    kill_run(s,notes,data_fid_notes);
                 elseif f.UserData.state == 3 % quit
                     present = 0;
                 end
@@ -436,22 +438,20 @@ while f.UserData.state ~= 3
 end
 
 %% end program
-kill_program(s,notes);
+kill_program(s,f);
 
 end
 
 %% Supporting functions
 
 %% end run function
-function[] = kill_run(s,notes)
+function[] = kill_run(s,notes,fid)
 
 write(s,'<S,1>','string'); % reset
 write(s,'<S,0>','string'); % idle
 
-fprintf(fid2,['\nRun Ended at ' char(datetime('now','Format','HH:mm:ss')) '\n']);
-
 for i = 1:size(notes.Value,1)
-    fprintf(fid2,'%s\n',notes.Value{i});
+    fprintf(fid,'%s\n',notes.Value{i});
 end
 
 fclose('all');
@@ -459,13 +459,10 @@ fclose('all');
 end
 
 %% program quit functions
-function[] = kill_program(s,notes)
+function[] = kill_program(s,f)
 
 fprintf('\nQuitting...\n')
 
-for i = 1:size(notes.Value,1)
-    fprintf(fid2,'%s\n',notes.Value{i});
-end
 % close files
 fclose('all');
 
@@ -473,21 +470,19 @@ fclose('all');
 write(s,'<S,1>','string'); % reset
 write(s,'<S,0>','string'); % idle
 clear s
+delete(f);
 
 end
 
 %% on window close
 function[] = window_close(src,~,s)
 
-selection = questdlg('Close?', 'Confirmation', 'Yes', 'No', 'No');
-if strcmp(selection, 'Yes')
-    fclose('all');
-    %stop io
-    write(s,'<S,1>','string'); % reset
-    write(s,'<S,0>','string'); % idle
-    clear s
-    delete(src); % Explicitly delete the figure
-end
+fclose('all');
+%stop io
+write(s,'<S,1>','string'); % reset
+write(s,'<S,0>','string'); % idle
+clear s
+delete(src);
 
 end
 %% write to tensy

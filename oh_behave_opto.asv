@@ -95,22 +95,6 @@ fa_sound = config.fa_amp*sin(2*pi*config.fa_freq1*fa_t) .* sin(pi*config.fa_freq
 hit_t = 1/config.sound_fs:1/config.sound_fs:config.hit_len;
 hit_sound = config.hit_amp.*chirp(hit_t,config.hit_freq1,hit_t(end),config.hit_freq2) .* gausswin(numel(hit_t))';
 
-<<<<<<< HEAD
-% Teensy parameters, *time should be in ms
-config.tp.enforceEarlyLick = 1; % 1/0
-config.tp.lickMax = 1; % uint
-config.tp.waitForNextFrame = 0; % 1/0
-config.tp.contingentStim = 0; % uint 0-3, or number of dac channels, zero index based
-config.tp.trigLen = 200; % length of trigger broadcast/digital high, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
-config.tp.respLen = 1500; % length of response window from stim onset double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
-config.tp.valveLen = 20;  % how long the valve opens on reward, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
-config.tp.consumeLen = 1500; % how much time to give between reward administration and starting the next trial, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
-config.tp.pairDelay =  700; % if doing pairing, offset between stim and reward, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
-config.tp.outLen =   1000; % length of time to braodcast an outcome of an early response, double, in seconds, but will be rounded to nearest integer of val * teensy_fs, e.g., 0.2112 * 2000 = 442 points or 0.221 sec
-config.tp.removeLen =  2000; % how long to open the valve for the vacuum to suck away reward
-
-=======
->>>>>>> a6c963873d3dea5594612d846d5dbf0f368a3882
 %% Make Trial structure
 
 % make opto trials
@@ -240,15 +224,9 @@ while f.UserData.state ~= 3
 
             s.configureCallback('byte',config.up_every, @(src,evt) plotSaveDataAvailable(src, evt, data_fid_stream, ax, config.up_every,f));
 
-<<<<<<< HEAD
-        % send triggers
-        write_serial(s,teensy_trigger);
-        pause(config.tp.trigLen/1e3)
-=======
             % send triggers
             write_serial(s,teensy_trigger);
             pause(config.tp.trigLen/1000);
->>>>>>> a6c963873d3dea5594612d846d5dbf0f368a3882
 
             fprintf(data_fid_notes,['\nRun Began at ' char(datetime('now','Format','HH:mm:ss'))]);
 
@@ -258,22 +236,6 @@ while f.UserData.state ~= 3
             axc.XTick = [0 config.sig_amps];
             axc.XLim = [0 config.sig_amps(end)];
 
-<<<<<<< HEAD
-        n_reset_cnts = 0;
-        reset_off = 0;
-
-        if run_type == 1
-            fprintf(data_fid_notes,'\nDetection Task');
-        elseif run_type == 2
-            fprintf(data_fid_notes,'\nPairing Task');
-        end
-
-        pause(config.baseln)
-
-        while present % trial loop
-
-            iti = round(1e3*(config.iti_len(1) + ((config.iti_len(2) - config.iti_len(1)) * rand(1))));
-=======
             n_reset_cnts = 0;
             reset_off = 0;
 
@@ -288,7 +250,6 @@ while f.UserData.state ~= 3
             while present % trial loop
 
                 iti = round(1e3*(config.iti_len(1) + ((config.iti_len(2) - config.iti_len(1)) * rand(1))));
->>>>>>> a6c963873d3dea5594612d846d5dbf0f368a3882
 
                 trial_type = trls(trl_cntr);
 
@@ -353,24 +314,6 @@ while f.UserData.state ~= 3
                         break
                     end
                 end
-<<<<<<< HEAD
-                n_reset_cnts = 0;
-            elseif trial_outcome == 5 % early lick
-                el_txt.FontColor = [0 1 1];
-                trl_cntr = trl_cntr - 1; % redo last trial
-                n_reset_cnts = n_reset_cnts + 1;
-                fprintf(['\n' num2str(n_reset_cnts)])
-                if n_reset_cnts >= config.n_resets
-                    if config.just_go_after_reset % after maxed out early lick reset, should we just go forward with the trial
-                        write(s,'<P,1,0>','string');
-                        reset_off = 1;
-                    end
-                    if config.play_error_sound % after maxed out early lick reset, should we play sound
-                        sound(error_sound,config.sound_fs);
-                    end
-                    if config.error_timeout_len > 0 % after maxed out early lick reset, should we give a timeout
-                        pause(round(config.error_timeout_len(1) + ((config.error_timeout_len(2) - config.error_timeout_len(1)) * rand(1)),2));
-=======
 
                 trial_outcome = f.UserData.trialOutcome;
 
@@ -386,7 +329,6 @@ while f.UserData.state ~= 3
                     p_hit(1,piezo_amp==sig_amps_12bit) = p_hit(1,piezo_amp==sig_amps_12bit) + 1;
                     if config.play_hit_sound
                         sound(hit_sound,config.sound_fs);
->>>>>>> a6c963873d3dea5594612d846d5dbf0f368a3882
                     end
                     n_reset_cnts = 0;
                 elseif trial_outcome == 2
@@ -463,7 +405,8 @@ while f.UserData.state ~= 3
                     fprintf('\nAbort...')
                     present = 0;
                     configureCallback(s,'off');
-                    kill_run(s,data_fid_stream,data_fid_notes,notes);
+                    fprintf(data_fid_notes,['\nRun aborted at ' char(datetime('now','Format','HH:mm:ss')) '\n']);
+                    kill_run(s,notes);
                 elseif trl_cntr > config.n_trials % end of run
                     ax.Title.String = 'Task Complete';
                     pause(3)
@@ -472,7 +415,8 @@ while f.UserData.state ~= 3
                     present = 0;
                     configureCallback(s,'off');
                     f.UserData.state = 2;
-                    kill_run(s,data_fid_stream,data_fid_notes,notes);
+                    fprintf(data_fid_notes,['\nRun completed at ' char(datetime('now','Format','HH:mm:ss')) '\n']);
+                    kill_run(s,notes);
                 elseif f.UserData.state == 3 % quit
                     present = 0;
                 end
@@ -494,7 +438,7 @@ while f.UserData.state ~= 3
 end
 
 %% end program
-kill_program(s,notes);
+kill_program(s,f);
 
 end
 
@@ -506,8 +450,6 @@ function[] = kill_run(s,notes)
 write(s,'<S,1>','string'); % reset
 write(s,'<S,0>','string'); % idle
 
-fprintf(fid2,['\nRun Ended at ' char(datetime('now','Format','HH:mm:ss')) '\n']);
-
 for i = 1:size(notes.Value,1)
     fprintf(fid2,'%s\n',notes.Value{i});
 end
@@ -517,13 +459,10 @@ fclose('all');
 end
 
 %% program quit functions
-function[] = kill_program(s,notes)
+function[] = kill_program(s,f)
 
 fprintf('\nQuitting...\n')
 
-for i = 1:size(notes.Value,1)
-    fprintf(fid2,'%s\n',notes.Value{i});
-end
 % close files
 fclose('all');
 
@@ -531,21 +470,19 @@ fclose('all');
 write(s,'<S,1>','string'); % reset
 write(s,'<S,0>','string'); % idle
 clear s
+delete(f);
 
 end
 
 %% on window close
 function[] = window_close(src,~,s)
 
-selection = questdlg('Close?', 'Confirmation', 'Yes', 'No', 'No');
-if strcmp(selection, 'Yes')
-    fclose('all');
-    %stop io
-    write(s,'<S,1>','string'); % reset
-    write(s,'<S,0>','string'); % idle
-    clear s
-    delete(src); % Explicitly delete the figure
-end
+fclose('all');
+%stop io
+write(s,'<S,1>','string'); % reset
+write(s,'<S,0>','string'); % idle
+clear s
+delete(src);
 
 end
 %% write to tensy

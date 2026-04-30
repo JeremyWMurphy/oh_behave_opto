@@ -29,19 +29,20 @@ ax.Color = [0 0 0];
 ax.XColor = [1 1 1];
 ax.YColor = [1 1 1];
 ax.XLabel.String = 'SECS';
-ax.YLim = [0 13];
+ax.YLim = [-1 15];
 ax.XLim = [1 fs*n_sec_disp];
 ax.Title.Color = [1 1 1];
 ax.Title.FontSize = 18;
 ax.Title.FontWeight = 'normal';
 ax.Title.String = 'Waiting to start';
-ax.YTick = [1 3 5 7 9 11 13];
-ax.YTickLabel = {'Frames','Reward Valve','Remove Valve','Wheel','Opto','Piezo','Licks'};
+ax.YTick = [0 3 5 7 9 11 13 14];
+ax.YTickLabel = {'Bar Code','Frames','Reward Valve','Remove Valve','Wheel','Opto','Piezo','Licks'};
 ax.XAxis.Visible  = 'off';
 ax.Toolbar.Visible = 'off';
 ax.Interactions = [];
 
 nan_vec = nan(fs*n_sec_disp,1);
+plot(ax,nan_vec,'Color',ax1_color_pallette{5},'LineWidth',1); % bar code
 plot(ax,nan_vec,'Color',ax1_color_pallette{1},'LineWidth',1); % frame raw
 plot(ax,nan_vec,'Color',ax1_color_pallette{2},'LineWidth',1); % reward valve
 plot(ax,nan_vec,'Color',ax1_color_pallette{3},'LineWidth',1); % remove valve
