@@ -3,7 +3,7 @@ function [] = get_teensy_behavior_compile(pth,compile_days,runs,id)
 fs = 2e3;
 rt_cutoff = 100;
 
-d_cuttoff = 0;
+d_cuttoff = 0.75;
 d_prime_bin_sec = 120;
 
 % beh will be [piezo_amp opto_trl opto_t outcome rt trial_ix i];
