@@ -12,7 +12,7 @@ config.n_sec_disp = 10; % number of seconds to display on the graph
 
 % experiment structure parameters
 config.baseln = 5; % length of pause at begining of each run, sec
-config.n_trials = 100; % number of total trials to run -- there are many conditions, so this is a target, but do to rounding (always up, i.e., ceil()), there will be more than this number
+config.n_trials = 100; % number of total trials to run -- there are many conditions, so this is a target, but due to rounding (always up, i.e., ceil()), there will be more than this number
 
 %% key parameters
 
@@ -20,7 +20,7 @@ config.iti_len = [3 7];
 config.prcnt_go_p_alone = 0.75; % percentage of trials that are go trials
 config.prcnt_go_p_opto = 0.75; % percentage of trials that are go trials
 config.prcnt_opto = 0.5; % percent of trials that are go, and resulting percentage of trials that are catch trials
-config.n_start_gomax = 5; % number of trials to put at the begining of max stim go trials to get the animal going
+config.n_start_gomax = 4; % number of trials to put at the begining of max stim go trials to get the animal going
 config.limit_repeats = true; % this finds a trial permutation that limits repeating of the same trial type, the program will hang if you have this set to true and there are few conditions
 config.n_repeats = 3; % limit consecutive trials to less than this number
 config.n_resets = Inf; % how many times to reset iti on early lick before either issuing feedback or just going forward with trial
@@ -33,15 +33,20 @@ config.tp.waitForNextFrame = 0; % bool, 1/0
 config.tp.contingentStim = 0; % uint 0-3, or number of dac channels, zero index based
 config.tp.trigLen = 200; % uint, length of trigger broadcast/digital high
 config.tp.respLen = 1500; % uint, length of response window from stim onset
-config.tp.valveLen = 200;  % uint, how long the valve opens on reward
+config.tp.valveLen = 100;  % uint, how long the valve opens on reward
 config.tp.consumeLen = 1500; % uint, how much time to give between reward administration and starting the next trial
 config.tp.pairDelay =  700; % uint, if doing pairing, offset between stim and reward
 config.tp.outLen =   1000; % uint, length of time to braodcast an outcome of an early response
 config.tp.removeLen =  2000; % uint, how long to open the valve for the vacuum to suck away reward
 
 % piezo
+
 config.sig_amps = [0.2 0.3 0.4 0.6 1]; % amplitudes of stimuli, Volts
 config.prcnt_amps = [0.2 0.2 0.2 0.2 0.2]; ... repmat(1/numel(config.sig_amps),1,numel(config.sig_amps)); % proportion of different amplitudes to present - needs to add to 1
+
+%config.sig_amps = [0.4 0.6 1]; % amplitudes of stimuli, Volts
+%config.prcnt_amps = [0.33 0.33 0.33];
+
 % --* initial teensy waveform stimulus parameters, currently fixed to Shin and
 % Moore, 2019: whale, 6 ms rise, 20 ms fall, 20 Hz, 10 reps, 500 ms --
 % actually 5 ms rise here *--
